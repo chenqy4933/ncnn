@@ -1,0 +1,3 @@
+[submodule "meitu_build/3rdparty/libprotobuf"]
+	path = meitu_build/3rdparty/libprotobuf
+	url = git@mlabgit.meitu.com:3rdpartyBinary/libprotobuf.git

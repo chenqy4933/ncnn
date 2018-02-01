@@ -38,6 +38,11 @@ int Layer::load_model(const ModelBin& /*mb*/)
     return 0;
 }
 
+int Layer::load_model(const caffe::LayerParameter& /*param*/)
+{
+    return 0;
+}
+
 int Layer::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_blobs) const
 {
     if (!support_inplace)
