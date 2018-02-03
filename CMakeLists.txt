@@ -34,6 +34,12 @@ if(NCNN_OPENMP)
     endif()
 endif()
 
+
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
+
+include_directories(${CAFFE_PROTO_INCLUDE_DIR})
+
 add_definitions(-Wall -Wextra -Wno-unused-function)
 
 add_definitions(-fPIC)

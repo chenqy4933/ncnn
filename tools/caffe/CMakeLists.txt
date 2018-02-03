@@ -1,7 +1,4 @@
 
-find_package(Protobuf REQUIRED)
-
-include_directories(${PROTOBUF_INCLUDE_DIR})
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})
 protobuf_generate_cpp(CAFFE_PROTO_SRCS CAFFE_PROTO_HDRS caffe.proto)
