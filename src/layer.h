@@ -22,6 +22,7 @@
 #include "modelbin.h"
 #include "paramdict.h"
 #include "platform.h"
+#include "caffe/proto/caffe.pb.h"
 
 namespace ncnn {
 
@@ -40,6 +41,8 @@ public:
     // load layer specific weight data from model binary
     // return 0 if success
     virtual int load_model(const ModelBin& mb);
+
+    virtual int load_model(const caffe::LayerParameter& param);
 
 public:
     // one input and one output blob

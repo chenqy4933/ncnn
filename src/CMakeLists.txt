@@ -144,6 +144,8 @@ ncnn_add_layer(ShuffleChannel)
 
 add_library(ncnn STATIC ${ncnn_SRCS})
 
+target_link_libraries(ncnn ${PROTOBUF_LIBRARIES})
+
 install(TARGETS ncnn ARCHIVE DESTINATION lib)
 install(FILES
     blob.h
