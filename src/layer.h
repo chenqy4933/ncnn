@@ -22,7 +22,7 @@
 #include "modelbin.h"
 #include "paramdict.h"
 #include "platform.h"
-#include "caffe/proto/caffe.pb.h"
+#include "caffe.pb.h"
 
 namespace ncnn {
 
