@@ -402,7 +402,7 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
     unsigned char* model_mem;
     int ret = 0 ;
     long model_mem_len;
-    ret = Model_Caffe::caffe2ncnn(protopath,modelpath,&proto_mem,&model_mem,&model_mem_len);
+    ret = Model_Caffe::caffe2ncnn(&proto_mem,&model_mem,&model_mem_len,modelpath,protopath);
     if (ret != 0)
     {
         fprintf(stderr, "Model_Caffe::caffe2ncnn failed, %s. %s.\n",protopath,modelpath);

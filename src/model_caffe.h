@@ -31,12 +31,12 @@ class Model_Caffe
 {
 public:
 
-	static int caffe2ncnn(const char* pp,
-		const char* mp,
-		unsigned char** ppm,
-		unsigned char** mm,
-		long *mmlen);
-
+	static int caffe2ncnn(unsigned char** ppm,
+		unsigned char** bpm,
+        long *model_mem_len,
+        const char* caffemodel,
+        const char* caffeproto = NULL);
+	
     Model_Caffe();
 	
 	static inline size_t alignSize(size_t sz, int n)

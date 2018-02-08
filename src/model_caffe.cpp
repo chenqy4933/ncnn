@@ -268,11 +268,11 @@ bool Model_Caffe::read_proto_from_binary(const char* filepath, google::protobuf:
     return success;
 }
 
-int Model_Caffe::caffe2ncnn(const char* caffeproto,
-		const char* caffemodel,
-		unsigned char** ppm,
+int Model_Caffe::caffe2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
-        long *model_mem_len)
+        long *model_mem_len,
+        const char* caffemodel,
+        const char* caffeproto)
 {
     //current only use quantize_level = 0
     int quantize_level = 0;
@@ -285,19 +285,37 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         return -1;
     }
     // load
-    bool s0 = read_proto_from_text(caffeproto, &proto);
-    if (!s0)
+    if (caffeproto != NULL)
     {
-        fprintf(stderr, "read_proto_from_text failed\n");
-        return -1;
+        bool s0 = read_proto_from_text(caffeproto, &proto);
+        if (!s0)
+        {
+            fprintf(stderr, "read_proto_from_text failed\n");
+            return -1;
+        }
+        bool s1 = read_proto_from_binary(caffemodel, &net);
+        if (!s1)
+        {
+            fprintf(stderr, "read_proto_from_binary failed\n");
+            return -1;
+        }
     }
-
-    bool s1 = read_proto_from_binary(caffemodel, &net);
-    if (!s1)
+    else
     {
-        fprintf(stderr, "read_proto_from_binary failed\n");
-        return -1;
+        bool s0 = read_proto_from_binary(caffemodel, &proto);
+        if (!s0)
+        {
+            fprintf(stderr, "read_proto_from_binary failed\n");
+            return -1;
+        }
+        bool s1 = read_proto_from_binary(caffemodel, &net);
+        if (!s1)
+        {
+            fprintf(stderr, "read_proto_from_binary failed\n");
+            return -1;
+        }
     }
+    
 
     //std::vector<Mat> bp;
     MTString pp;

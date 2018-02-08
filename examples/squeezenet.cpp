@@ -26,7 +26,9 @@ static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores,
     if(0 == flag){
         squeezenet.load_param("../../squeezenet_v1.1.param");
         squeezenet.load_model("../../squeezenet_v1.1.bin");
-    }else{
+    } else if (1 == flag) {
+      squeezenet.load_caffe_model(NULL,"../../squeezenet_v1.1.merge");
+    } else{
         squeezenet.load_caffe_model("../../squeezenet_v1.1.prototxt","../../squeezenet_v1.1.caffemodel");
     }
 
@@ -85,7 +87,9 @@ int main(int argc, char** argv)
     if(argc > 2){
         const char* dpname = argv[2];
         if(strncmp(dpname,"caffe",5) == 0)
-            flag = 1;
+            flag = 2;
+        else if (strncmp(dpname,"merge",5) == 0)
+          flag = 1;
     }
 
     cv::Mat m = cv::imread(imagepath, CV_LOAD_IMAGE_COLOR);
