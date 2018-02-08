@@ -60,6 +60,9 @@ public:
     int load_model(const char* modelpath);
 #endif // NCNN_STDIO
 
+	//support protext/model of caffe.
+	int load_caffe_model(const char* pp,const char* mp);
+	int load_caffe_param(const unsigned char* _mem);
     // load network structure from external memory
     // memory pointer must be 32-bit aligned
     // return bytes consumed

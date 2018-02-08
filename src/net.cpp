@@ -28,6 +28,8 @@
 #include "benchmark.h"
 #endif // NCNN_BENCHMARK
 
+#include "model_caffe.h"
+
 namespace ncnn {
 
 Net::Net()
@@ -392,6 +394,44 @@ int Net::load_model(const char* modelpath)
 
     return ret;
 }
+
+int Net::load_caffe_model(const char* protopath,const char* modelpath)
+{
+    //std::string proto_mem;
+    unsigned char* proto_mem;
+    unsigned char* model_mem;
+    int ret = 0 ;
+    long model_mem_len;
+    ret = Model_Caffe::caffe2ncnn(protopath,modelpath,&proto_mem,&model_mem,&model_mem_len);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Model_Caffe::caffe2ncnn failed, %s. %s.\n",protopath,modelpath);
+        return -1;
+    }
+    ret = load_caffe_param(proto_mem);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Model_Caffe::load_param failed, %s. %s.\n",protopath,modelpath);
+        return -1;
+    }
+    FILE* outfile = fopen("./test.bin", "wb");
+    if (outfile == NULL)
+      fprintf(stderr, "fileName:%s open error\n", "./test.bin");
+    else
+    {
+      fwrite(model_mem, sizeof(char), model_mem_len, outfile);
+      fclose(outfile);
+    }
+    
+    ret = load_model(model_mem);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Model_Caffe::load_model failed, %s. %s.\n",protopath,modelpath);
+        return -1;
+    }
+    return ret;
+}
+
 #endif // NCNN_STDIO
 
 int Net::load_param(const unsigned char* _mem)
@@ -503,13 +543,145 @@ int Net::load_param(const unsigned char* _mem)
     return mem - _mem;
 }
 
-int Net::load_model(const unsigned char* _mem)
+int Net::load_caffe_param(const unsigned char* _mem)
 {
     if ((unsigned long)_mem & 0x3)
     {
         // reject unaligned memory
         fprintf(stderr, "memory not 32-bit aligned at %p\n", _mem);
         return 0;
+    }
+
+    const unsigned char* mem = _mem;
+
+    int magic = *(int*)(mem);
+    mem += 4;
+
+    if (magic != 7767517)
+    {
+        fprintf(stderr, "param is too old, please regenerate\n");
+        return 0;
+    }
+
+    int layer_count = *(int*)(mem);
+    mem += 4;
+
+    int blob_count = *(int*)(mem);
+    mem += 4;
+
+    layers.resize(layer_count);
+    blobs.resize(blob_count);
+
+    ParamDict pd;
+    int blob_index = 0;
+    
+    for (int i=0; i<layer_count; i++)
+    {
+        char *layer_type = (char *)mem;
+        int layer_type_len = strlen(layer_type);
+        mem += layer_type_len+1;
+
+        char *layer_name = (char *)mem;
+        int layer_name_len = strlen(layer_name);
+        mem += layer_name_len+1;
+
+        int bottom_count = *(int*)mem;
+        mem += 4;
+
+        int top_count = *(int*)mem;
+        mem += 4;
+
+        Layer* layer = create_layer(layer_type);
+        if (!layer)
+        {
+            layer = create_custom_layer(layer_type);
+        }
+        if (!layer)
+        {
+            fprintf(stderr, "layer %s not exists or registered\n", layer_type);
+            clear();
+            return -1;
+        }
+
+         layer->type = std::string(layer_type);
+         layer->name = std::string(layer_name);
+//         fprintf(stderr, "new layer %d\n", typeindex);
+
+        layer->bottoms.resize(bottom_count);
+        for (int j=0; j<bottom_count; j++)
+        {
+            char *bottom_blob_name = (char *)mem;
+            int bottom_blob_name_len = strlen(bottom_blob_name);
+            mem += bottom_blob_name_len+1;
+
+            int bottom_blob_index = find_blob_index_by_name(bottom_blob_name);
+            if (bottom_blob_index == -1)
+            {
+                Blob& blob = blobs[blob_index];
+
+                bottom_blob_index = blob_index;
+
+                blob.name = std::string(bottom_blob_name);
+//                 fprintf(stderr, "new blob %s\n", bottom_name);
+
+                blob_index++;
+            }
+
+            Blob& blob = blobs[bottom_blob_index];
+
+            blob.consumers.push_back(i);
+
+            layer->bottoms[j] = bottom_blob_index;
+        }
+
+        layer->tops.resize(top_count);
+        for (int j=0; j<top_count; j++)
+        {
+            Blob& blob = blobs[blob_index];
+            
+            char* top_blob_name = (char *)mem;
+            int top_blob_name_len = strlen(top_blob_name);
+            mem += top_blob_name_len+1;
+
+            blob.name = std::string(top_blob_name);
+//            fprintf(stderr, "new blob %s\n", blob_name);
+
+            blob.producer = i;
+
+            layer->tops[j] = blob_index;
+
+            blob_index++;
+        }
+
+        // layer specific params
+        int pdlr = pd.load_param(mem);
+        if (pdlr != 0)
+        {
+            fprintf(stderr, "ParamDict load_param failed\n");
+            continue;
+        }
+
+        int lr = layer->load_param(pd);
+        if (lr != 0)
+        {
+            fprintf(stderr, "layer load_param failed\n");
+            continue;
+        }
+
+        layers[i] = layer;
+
+    }
+
+    return 0;
+}
+
+int Net::load_model(const unsigned char* _mem)
+{
+    if ((unsigned long)_mem & 0x3)
+    {
+        // reject unaligned memory
+        fprintf(stderr, "memory not 32-bit aligned at %p\n", _mem);
+        return -1;
     }
 
     const unsigned char* mem = _mem;
@@ -526,7 +698,7 @@ int Net::load_model(const unsigned char* _mem)
         }
     }
 
-    return mem - _mem;
+    return 0;
 }
 
 void Net::clear()

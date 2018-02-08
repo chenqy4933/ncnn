@@ -20,11 +20,15 @@
 
 #include "net.h"
 
-static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores)
+static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores,int flag)
 {
     ncnn::Net squeezenet;
-    squeezenet.load_param("squeezenet_v1.1.param");
-    squeezenet.load_model("squeezenet_v1.1.bin");
+    if(0 == flag){
+        squeezenet.load_param("../../squeezenet_v1.1.param");
+        squeezenet.load_model("../../squeezenet_v1.1.bin");
+    }else{
+        squeezenet.load_caffe_model("../../squeezenet_v1.1.prototxt","../../squeezenet_v1.1.caffemodel");
+    }
 
     ncnn::Mat in = ncnn::Mat::from_pixels_resize(bgr.data, ncnn::Mat::PIXEL_BGR, bgr.cols, bgr.rows, 227, 227);
 
@@ -77,6 +81,12 @@ static int print_topk(const std::vector<float>& cls_scores, int topk)
 int main(int argc, char** argv)
 {
     const char* imagepath = argv[1];
+    int flag=0;
+    if(argc > 2){
+        const char* dpname = argv[2];
+        if(strncmp(dpname,"caffe",5) == 0)
+            flag = 1;
+    }
 
     cv::Mat m = cv::imread(imagepath, CV_LOAD_IMAGE_COLOR);
     if (m.empty())
@@ -86,8 +96,9 @@ int main(int argc, char** argv)
     }
 
     std::vector<float> cls_scores;
-    detect_squeezenet(m, cls_scores);
-
+    
+    detect_squeezenet(m, cls_scores,flag);
+    
     print_topk(cls_scores, 3);
 
     return 0;

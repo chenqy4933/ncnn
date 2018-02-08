@@ -14,6 +14,7 @@ set(ncnn_SRCS
     mat.cpp
     mat_pixel.cpp
     modelbin.cpp
+    model_caffe.cpp
     net.cpp
     opencv.cpp
     paramdict.cpp
@@ -155,6 +156,7 @@ install(FILES
     layer_type.h
     mat.h
     modelbin.h
+    model_caffe.h
     net.h
     opencv.h
     paramdict.h
