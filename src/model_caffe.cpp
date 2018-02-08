@@ -305,12 +305,9 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
     MTString bp;
     stringInitBuf(&bp,Mem64k);
     int parm_int;
-    float parm_float;
-    char* parm_str;
-    int parm_str_len;
     
     // magic
-    //bp.push_back();
+    //std::string pp;
     //sprintf(pp, "7767517\n");
     //pp += "7767517\n";
     parm_int = 7767517;
@@ -382,12 +379,10 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         }
     }
     
-    //sprintf(tmp, "%lu %lu\n", layer_count + bottom_reference.size(), blob_names.size() + splitncnn_blob_count);
-    //pp += tmp;
     parm_int = layer_count + bottom_reference.size();
-    stringAppend(&pp,&parm_int,sizeof(int));
+    MTappend(&pp,parm_int);
     parm_int = blob_names.size() + splitncnn_blob_count;
-    stringAppend(&pp,&parm_int,sizeof(int));
+    MTappend(&pp,parm_int);
 
     // populate
     blob_name_decorated.clear();
@@ -402,86 +397,49 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         {
             const caffe::ConvolutionParameter& convolution_param = layer.convolution_param();
             if (convolution_param.group() != 1){
-                //sprintf(tmp, "%-16s", "ConvolutionDepthWise");
-                //pp += tmp;
-                stringAppend(&pp,"ConvolutionDepthWise",strlen("ConvolutionDepthWise"));
-                stringAppend(&pp,"\0",1);
+                MTappend(&pp,(char *)"ConvolutionDepthWise");
             }else{
-                //sprintf(tmp, "%-16s", "Convolution");
-                //pp += tmp;
-                stringAppend(&pp,"Convolution",strlen("Convolution"));
-                stringAppend(&pp,"\0",1);
+                //stringAppend(&pp,"Convolution\0",strlen("Convolution\0"));
+                MTappend(&pp,(char *)"Convolution");
             }
         }
         else if (layer.type() == "ConvolutionDepthwise")
         {
-            //sprintf(tmp, "%-16s", "ConvolutionDepthWise");
-            //pp += tmp;
-            stringAppend(&pp,"ConvolutionDepthWise",strlen("ConvolutionDepthWise"));
-            stringAppend(&pp,"\0",1);
+            MTappend(&pp,(char *)"ConvolutionDepthWise");
         }
         else if (layer.type() == "Deconvolution")
         {
             const caffe::ConvolutionParameter& convolution_param = layer.convolution_param();
             if (convolution_param.group() != 1){
-                //sprintf(tmp, "%-16s", "DeconvolutionDepthWise");
-                //pp += tmp;
-                stringAppend(&pp,"DeconvolutionDepthWise",strlen("DeconvolutionDepthWise"));
-                stringAppend(&pp,"\0",1);
+                MTappend(&pp,(char *)"DeconvolutionDepthWise");
             }else{
-                //sprintf(tmp, "%-16s", "Deconvolution");
-                //pp += tmp;
-                stringAppend(&pp,"Deconvolution",strlen("Deconvolution"));
-                stringAppend(&pp,"\0",1);
+                MTappend(&pp,(char *)"Deconvolution");
             }
         }
         else if (layer.type() == "MemoryData")
         {
-            //sprintf(tmp, "%-16s", "Input");
-            //pp += tmp;
-            stringAppend(&pp,"Input",strlen("Input"));
-            stringAppend(&pp,"\0",1);
+            MTappend(&pp,(char *)"Input");
         }
         else if (layer.type() == "Python")
         {
             const caffe::PythonParameter& python_param = layer.python_param();
             std::string python_layer_name = python_param.layer();
             if (python_layer_name == "ProposalLayer"){
-                //sprintf(tmp, "%-16s", "Proposal");
-                //pp += tmp;
-                stringAppend(&pp,"Proposal",strlen("Proposal"));
-                stringAppend(&pp,"\0",1);
+                MTappend(&pp,(char *)"Proposal");
             }else{
                 sprintf(tmp, "%s", python_layer_name.c_str());
-                //pp += tmp;
-                parm_str = tmp;
-                parm_str_len = strlen(parm_str);
-                stringAppend(&pp,parm_str,parm_str_len);
-                stringAppend(&pp,"\0",1);
+                MTappend(&pp,tmp);
             }
         }
         else
         {
             sprintf(tmp, "%s", layer.type().c_str());
-            //pp += tmp;
-            //parm_int = layer_to_index(layer.type().c_str());
-            //stringAppend(&pp,&parm_int,sizeof(int));
-            parm_str = tmp;
-            parm_str_len = strlen(parm_str);
-            stringAppend(&pp,parm_str,parm_str_len);
-            stringAppend(&pp,"\0",1);
+            MTappend(&pp,tmp);
         }
-        //sprintf(tmp, " %-16s %d %d", layer.name().c_str(), layer.bottom_size(), layer.top_size());
-        //pp += tmp;
         sprintf(tmp, "%s", layer.name().c_str());
-        parm_str = tmp;
-        parm_str_len = strlen(parm_str);
-        stringAppend(&pp,parm_str,parm_str_len);
-        stringAppend(&pp,"\0",1);
-        parm_int = layer.bottom_size();
-        stringAppend(&pp,&parm_int,sizeof(int));
-        parm_int = layer.top_size();
-        stringAppend(&pp,&parm_int,sizeof(int));
+        MTappend(&pp,tmp);
+        MTappend(&pp,layer.bottom_size());
+        MTappend(&pp,layer.top_size());
         
         for (int j=0; j<layer.bottom_size(); j++)
         {
@@ -501,11 +459,7 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                 blob_name = blob_name + splitsuffix;
             }
             sprintf(tmp, "%s", blob_name.c_str());
-            //pp += tmp;
-            parm_str = tmp;
-            parm_str_len = strlen(parm_str);
-            stringAppend(&pp,parm_str,parm_str_len);
-            stringAppend(&pp,"\0",1);
+            MTappend(&pp,tmp);
         }
 
         // if input = output, rename: blobname --> blobname_layername
@@ -515,11 +469,7 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             blob_name_decorated[layer.top(0)] = blob_name;
 
             sprintf(tmp, "%s", blob_name.c_str());
-            //pp += tmp;
-            parm_str = tmp;
-            parm_str_len = strlen(parm_str);
-            stringAppend(&pp,parm_str,parm_str_len);
-            stringAppend(&pp,"\0",1);
+            MTappend(&pp,tmp);
         }
         else
         {
@@ -527,11 +477,7 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             {
                 std::string blob_name = layer.top(j);
                 sprintf(tmp, "%s", blob_name.c_str());
-                //pp += tmp;
-                parm_str = tmp;
-                parm_str_len = strlen(parm_str);
-                stringAppend(&pp,parm_str,parm_str_len);
-                stringAppend(&pp,"\0",1);
+                MTappend(&pp,tmp);
             }
         }
 
@@ -552,12 +498,8 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
 
             const caffe::BlobProto& mean_blob = binlayer.blobs(0);
             const caffe::BlobProto& var_blob = binlayer.blobs(1);
-            //sprintf(tmp, " 0=%d", (int)mean_blob.data_size());
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = (int)mean_blob.data_size();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,(int)mean_blob.data_size());
 
             const caffe::BatchNormParameter& batch_norm_param = layer.batch_norm_param();
             float eps = batch_norm_param.eps();
@@ -599,12 +541,8 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         {
             const caffe::ConcatParameter& concat_param = layer.concat_param();
             int dim = concat_param.axis() - 1;
-            //sprintf(tmp, " 0=%d", dim);
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = dim;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,dim);
         }
         else if (layer.type() == "Convolution" || layer.type() == "ConvolutionDepthwise")
         {
@@ -612,97 +550,54 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
 
             const caffe::BlobProto& weight_blob = binlayer.blobs(0);
             const caffe::ConvolutionParameter& convolution_param = layer.convolution_param();
-            //sprintf(tmp, " 0=%d", convolution_param.num_output());
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = convolution_param.num_output();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,(int)convolution_param.num_output());
             
             if (convolution_param.has_kernel_w() && convolution_param.has_kernel_h())
             {
-                //sprintf(tmp, " 1=%d 11=%d", convolution_param.kernel_w(), convolution_param.kernel_h());
-                //pp += tmp;
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.kernel_w();
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 11;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.kernel_h();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,1);
+                MTappend(&pp,(int)convolution_param.kernel_w());
+                MTappend(&pp,11);
+                MTappend(&pp,(int)convolution_param.kernel_h());
             }
             else
             {
-                //sprintf(tmp, " 1=%d", convolution_param.kernel_size(0));
-                //pp += tmp;
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.kernel_size(0);
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,1);
+                MTappend(&pp,(int)convolution_param.kernel_size(0));
             }
-            //sprintf(tmp, " 2=%d", convolution_param.dilation_size() != 0 ? convolution_param.dilation(0) : 1);
-            //pp += tmp;
-            parm_int = 2;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,2);
             parm_int = convolution_param.dilation_size() != 0 ? convolution_param.dilation(0) : 1;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,parm_int);
             if (convolution_param.has_stride_w() && convolution_param.has_stride_h())
             {
-                //sprintf(tmp, " 3=%d 13=%d", convolution_param.stride_w(), convolution_param.stride_h());
-                //pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.stride_w();
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 13;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.stride_h();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,3);
+                MTappend(&pp,(int)convolution_param.stride_w());
+                MTappend(&pp,13);
+                MTappend(&pp,(int)convolution_param.stride_h());
             }
             else
             {
-                //sprintf(tmp, " 3=%d", convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1);
-                //pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,3);
                 parm_int = convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,parm_int);
             }
-            /*sprintf(tmp, " 4=%d 5=%d 6=%d", convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0
-            , convolution_param.bias_term()
-            , weight_blob.data_size());*/
-            //pp += tmp;
-            parm_int = 4;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,4);
             parm_int = convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 5;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = convolution_param.bias_term();
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 6;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = weight_blob.data_size();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,parm_int);
+            MTappend(&pp,5);
+            MTappend(&pp,(int)convolution_param.bias_term());
+            MTappend(&pp,6);
+            MTappend(&pp,(int)weight_blob.data_size());
 
             if (layer.type() == "ConvolutionDepthwise")
             {
-                //sprintf(tmp, " 7=%d", convolution_param.num_output());
-                //pp += tmp;
-                parm_int = 7;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.num_output();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,7);
+                MTappend(&pp,(int)convolution_param.num_output());
             }
             else if (convolution_param.group() != 1)
             {
-                //sprintf(tmp, " 7=%d", convolution_param.group());
-                //pp += tmp;
-                parm_int = 7;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.group();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,7);
+                MTappend(&pp,(int)convolution_param.group());
             }
 
             for (int j = 0; j < binlayer.blobs_size(); j++)
@@ -785,16 +680,10 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             int num_offset = crop_param.offset_size();
             int woffset = (num_offset == 2) ? crop_param.offset(0) : 0;
             int hoffset = (num_offset == 2) ? crop_param.offset(1) : 0;
-            //sprintf(tmp, " 0=%d 1=%d", woffset, hoffset);
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = woffset;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 1;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = hoffset;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,woffset);
+            MTappend(&pp,1);
+            MTappend(&pp,hoffset);
         }
         else if (layer.type() == "Deconvolution")
         {
@@ -802,87 +691,49 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
 
             const caffe::BlobProto& weight_blob = binlayer.blobs(0);
             const caffe::ConvolutionParameter& convolution_param = layer.convolution_param();
-            //sprintf(tmp, " 0=%d", convolution_param.num_output());
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = convolution_param.num_output();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,(int)convolution_param.num_output());
             if (convolution_param.has_kernel_w() && convolution_param.has_kernel_h())
             {
-                //sprintf(tmp, " 1=%d 11=%d", convolution_param.kernel_w(), convolution_param.kernel_h());
-                //pp += tmp;
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.kernel_w();
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 11;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.kernel_h();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,1);
+                MTappend(&pp,(int)convolution_param.kernel_w());
+                MTappend(&pp,11);
+                MTappend(&pp,(int)convolution_param.kernel_h());
             }
             else
             {
-                //sprintf(tmp, " 1=%d", convolution_param.kernel_size(0));
-                //pp += tmp;
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.kernel_size(0);
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,1);
+                MTappend(&pp,(int)convolution_param.kernel_size(0));
             }
-            //sprintf(tmp, " 2=%d", convolution_param.dilation_size() != 0 ? convolution_param.dilation(0) : 1);
-            //pp += tmp;
             parm_int = 2;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,2);
             parm_int = convolution_param.dilation_size() != 0 ? convolution_param.dilation(0) : 1;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,parm_int);
             if (convolution_param.has_stride_w() && convolution_param.has_stride_h())
             {
-                //sprintf(tmp, " 3=%d 13=%d", convolution_param.stride_w(), convolution_param.stride_h());
-                //pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.stride_w();
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 13;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.stride_h();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,3);
+                MTappend(&pp,(int)convolution_param.stride_w());
+                MTappend(&pp,13);
+                MTappend(&pp,(int)convolution_param.stride_h());
             }
             else
             {
-                //sprintf(tmp, " 3=%d", convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1);
-                //pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp, 3);
                 parm_int = convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp, parm_int);
             }
-            /*sprintf(tmp, " 4=%d 5=%d 6=%d", convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0
-                , convolution_param.bias_term()
-                , weight_blob.data_size());*/
-            //pp += tmp;
-            parm_int = 4;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,4);
             parm_int = convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 5;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = convolution_param.bias_term();
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 6;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = weight_blob.data_size();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,parm_int);
+            MTappend(&pp,5);
+            MTappend(&pp,(int)convolution_param.bias_term());
+            MTappend(&pp,6);
+            MTappend(&pp,(int)weight_blob.data_size());
 
             if (convolution_param.group() != 1)
             {
-                //sprintf(tmp, " 7=%d", convolution_param.group());
-                //pp += tmp;
-                parm_int = 7;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = convolution_param.group();
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,7);
+                MTappend(&pp,(int)convolution_param.group());
             }
 
             int quantized_weight = 0;
@@ -934,33 +785,20 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         {
             const caffe::EltwiseParameter& eltwise_param = layer.eltwise_param();
             int coeff_size = eltwise_param.coeff_size();
-            //sprintf(tmp, " 0=%d -23301=%d", (int)eltwise_param.operation(), coeff_size);
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = (int)eltwise_param.operation();
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = -23301;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = coeff_size;
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,(int)eltwise_param.operation());
+            MTappend(&pp,-23301);
+            MTappend(&pp,(int)coeff_size);
             for (int j=0; j<coeff_size; j++)
             {
-                //sprintf(tmp, ",%f", eltwise_param.coeff(j));
-                //pp += tmp;
-                parm_float = eltwise_param.coeff(j);
-                stringAppend(&pp,&parm_float,sizeof(float));
+                MTappend(&pp,(float)eltwise_param.coeff(j));
             }
         }
         else if (layer.type() == "ELU")
         {
             const caffe::ELUParameter& elu_param = layer.elu_param();
-            //sprintf(tmp, " 0=%f", elu_param.alpha());
-            //pp += tmp;
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_float = elu_param.alpha();
-            stringAppend(&pp,&parm_float,sizeof(float));
+            MTappend(&pp,0);
+            MTappend(&pp,(float)elu_param.alpha());
         }
         else if (layer.type() == "InnerProduct")
         {
@@ -968,22 +806,12 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
 
             const caffe::BlobProto& weight_blob = binlayer.blobs(0);
             const caffe::InnerProductParameter& inner_product_param = layer.inner_product_param();
-           /* sprintf(tmp, " 0=%d 1=%d 2=%d", inner_product_param.num_output()
-                , inner_product_param.bias_term()
-                , weight_blob.data_size());
-            pp += tmp;*/
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = inner_product_param.num_output();
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 1;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = inner_product_param.bias_term();
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 2;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = weight_blob.data_size();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,(int)inner_product_param.num_output());
+            MTappend(&pp,1);
+            MTappend(&pp,(int)inner_product_param.bias_term());
+            MTappend(&pp,2);
+            MTappend(&pp,(int)weight_blob.data_size());
 
             for (int j=0; j<binlayer.blobs_size(); j++)
             {
@@ -1047,97 +875,49 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             const caffe::BlobShape& bs = input_param.shape(0);
             if (bs.dim_size() == 4)
             {
-                /*sprintf(tmp, " 0=%ld 1=%ld 2=%ld", bs.dim(3)
-                    , bs.dim(2)
-                    , bs.dim(1));
-                pp += tmp;*/
-                parm_int = 0;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = bs.dim(3);
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = bs.dim(2);
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 2;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = bs.dim(1);
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,0);
+                MTappend(&pp,(int)bs.dim(3));
+                MTappend(&pp,1);
+                MTappend(&pp,(int)bs.dim(2));
+                MTappend(&pp,2);
+                MTappend(&pp,(int)bs.dim(1));
             }
             else if (bs.dim_size() == 3)
             {
-                /*sprintf(tmp, " 0=%ld 1=%ld 2=-233", bs.dim(2)
-                    , bs.dim(1));
-                pp += tmp;*/
-                parm_int = 0;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = bs.dim(2);
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = bs.dim(1);
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 2;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = -233;
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,0);
+                MTappend(&pp,(int)bs.dim(2));
+                MTappend(&pp,1);
+                MTappend(&pp,(int)bs.dim(1));
+                MTappend(&pp,2);
+                MTappend(&pp,-233);
             }
             else if (bs.dim_size() == 2)
             {
-                /*sprintf(tmp, " 0=%ld 1=-233 2=-233", bs.dim(1));
-                pp += tmp;*/
-                parm_int = 0;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = bs.dim(1);
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 1;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = -233;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 2;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = -233;
-                stringAppend(&pp,&parm_int,sizeof(int));
+                MTappend(&pp,0);
+                MTappend(&pp,(int)bs.dim(1));
+                MTappend(&pp,1);
+                MTappend(&pp,-233);
+                MTappend(&pp,2);
+                MTappend(&pp,-233);
             }
         }
         else if (layer.type() == "Interp")
         {
             const caffe::InterpParameter& interp_param = layer.interp_param();
-            /*sprintf(tmp, " 0=%d 1=%f 2=%f 3=%d 4=%d", 2
-                , (float)interp_param.zoom_factor()
-                , (float)interp_param.zoom_factor()
-                , interp_param.height()
-                , interp_param.width());
-            pp += tmp;*/
-            parm_int = 0;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 2;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 1;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_float = (float)interp_param.zoom_factor();
-            stringAppend(&pp,&parm_float,sizeof(parm_float));
-            parm_int = 2;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_float = (float)interp_param.zoom_factor();
-            stringAppend(&pp,&parm_float,sizeof(parm_float));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = interp_param.height();
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 4;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = interp_param.width();
-            stringAppend(&pp,&parm_int,sizeof(int));
+            MTappend(&pp,0);
+            MTappend(&pp,2);
+            MTappend(&pp,1);
+            MTappend(&pp,(float)interp_param.zoom_factor());
+            MTappend(&pp,2);
+            MTappend(&pp,(float)interp_param.zoom_factor());
+            MTappend(&pp,3);
+            MTappend(&pp,(int)interp_param.height());
+            MTappend(&pp,4);
+            MTappend(&pp,(int)interp_param.width());
         }
         else if (layer.type() == "LRN")
         {
             const caffe::LRNParameter& lrn_param = layer.lrn_param();
-            /*sprintf(tmp, " 0=%d 1=%d 2=%f 3=%f", lrn_param.norm_region()
-                , lrn_param.local_size()
-                , lrn_param.alpha()
-                , lrn_param.beta());
-            pp += tmp;*/
             MTappend(&pp,0);
             parm_int = lrn_param.norm_region();
             MTappend(&pp,parm_int);
@@ -1147,42 +927,10 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             MTappend(&pp,(float)lrn_param.alpha());
             MTappend(&pp,3);
             MTappend(&pp,(float)lrn_param.beta());
-            /*parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
         }
         else if (layer.type() == "MemoryData")
         {
             const caffe::MemoryDataParameter& memory_data_param = layer.memory_data_param();
-            /*sprintf(tmp, " 0=%d 1=%d 2=%d", memory_data_param.width()
-                , memory_data_param.height()
-                , memory_data_param.channels());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
             MTappend(&pp,(int)memory_data_param.width());
             MTappend(&pp,1);
@@ -1193,28 +941,12 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         else if (layer.type() == "MVN")
         {
             const caffe::MVNParameter& mvn_param = layer.mvn_param();
-            /*sprintf(tmp, " 0=%d 1=%d 2=%f", mvn_param.normalize_variance()
-                , mvn_param.across_channels()
-                , mvn_param.eps());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
             MTappend(&pp,mvn_param.normalize_variance());
             MTappend(&pp,1);
             MTappend(&pp,mvn_param.across_channels());
             MTappend(&pp,2);
-            MTappend(&pp,mvn_param.eps());
+            MTappend(&pp,(float)mvn_param.eps());
         }
         #if 0
         else if (layer.type() == "Normalize")
@@ -1297,27 +1029,10 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         else if (layer.type() == "Pooling")
         {
             const caffe::PoolingParameter& pooling_param = layer.pooling_param();
-            /*sprintf(tmp, " 0=%d", pooling_param.pool());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
             MTappend(&pp,pooling_param.pool()); 
             if (pooling_param.has_kernel_w() && pooling_param.has_kernel_h())
             {
-                /*sprintf(tmp, " 1=%d", pooling_param.kernel_w());
-                sprintf(tmp, " 11=%d", pooling_param.kernel_h());
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,1);
                 MTappend(&pp,(int)pooling_param.kernel_w());
                 MTappend(&pp,11);
@@ -1325,28 +1040,11 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             }
             else
             {
-                /*sprintf(tmp, " 1=%d", pooling_param.kernel_size());
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,1);
                 MTappend(&pp,(int)pooling_param.kernel_size());
             }
             if (pooling_param.has_stride_w() && pooling_param.has_stride_h())
             {
-                /*sprintf(tmp, " 2=%d 12=%d", pooling_param.stride_w()
-                    , pooling_param.stride_h());
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,2);
                 MTappend(&pp,(int)pooling_param.stride_w());
                 MTappend(&pp,12);
@@ -1354,28 +1052,11 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             }
             else
             {
-                /*sprintf(tmp, " 2=%d", pooling_param.stride());
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,2);
                 MTappend(&pp,(int)pooling_param.stride());
             }
             if (pooling_param.has_pad_w() && pooling_param.has_pad_h())
             {
-                /*sprintf(tmp, " 3=%d 13=%d", pooling_param.pad_w()
-                    , pooling_param.pad_h());
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,3);
                 MTappend(&pp,(int)pooling_param.pad_w());
                 MTappend(&pp,13);
@@ -1383,61 +1064,27 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             }
             else
             {
-                /*sprintf(tmp, " 3=%d", pooling_param.pad());
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,3);
                 MTappend(&pp,(int)pooling_param.pad());
             }
-            /*sprintf(tmp, " 4=%d", pooling_param.has_global_pooling() ? pooling_param.global_pooling() : 0);
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,4);
             MTappend(&pp,pooling_param.has_global_pooling() ? pooling_param.global_pooling() : 0);
         }
         else if (layer.type() == "Power")
         {
             const caffe::PowerParameter& power_param = layer.power_param();
-            /*sprintf(tmp, " 0=%f 1=%f 2=%f", power_param.power()
-                , power_param.scale()
-                , power_param.shift());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
-            MTappend(&pp,power_param.power());
+            MTappend(&pp,(float)power_param.power());
             MTappend(&pp,1);
-            MTappend(&pp,power_param.scale());
+            MTappend(&pp,(float)power_param.scale());
             MTappend(&pp,2);
-            MTappend(&pp, power_param.shift());
+            MTappend(&pp,(float)power_param.shift());
                 
         }
         else if (layer.type() == "PReLU")
         {
             const caffe::LayerParameter& binlayer = net.layer(netidx);
             const caffe::BlobProto& slope_blob = binlayer.blobs(0);
-            /*sprintf(tmp, " 0=%d", slope_blob.data_size());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
             MTappend(&pp, slope_blob.data_size());
             stringAppend(&bp, slope_blob.data().data(), sizeof(float) * slope_blob.data_size());
@@ -1556,49 +1203,18 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                 int after_nms_topN = 300;
                 float nms_thresh = 0.7;
                 int min_size = 16;
-                /*sprintf(tmp, " 0=%d 1=%d 2=%d 3=%d 4=%f 5=%d", feat_stride
-                    , base_size
-                    , pre_nms_topN
-                    , after_nms_topN
-                    , nms_thresh
-                    , min_size);
-                pp += tmp;
-                parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
-            MTappend(&pp,0);
-            MTappend(&pp,feat_stride);
-            MTappend(&pp,1);
-            MTappend(&pp,base_size);
-            MTappend(&pp,2);
-            MTappend(&pp,pre_nms_topN);
-            MTappend(&pp,3);
-            MTappend(&pp,after_nms_topN);
-            MTappend(&pp,4);
-            MTappend(&pp,nms_thresh);
-            MTappend(&pp,5);
-            MTappend(&pp, min_size);
+                MTappend(&pp,0);
+                MTappend(&pp,feat_stride);
+                MTappend(&pp,1);
+                MTappend(&pp,base_size);
+                MTappend(&pp,2);
+                MTappend(&pp,pre_nms_topN);
+                MTappend(&pp,3);
+                MTappend(&pp,after_nms_topN);
+                MTappend(&pp,4);
+                MTappend(&pp,nms_thresh);
+                MTappend(&pp,5);
+                MTappend(&pp, min_size);
             }
         }
         else if (layer.type() == "ReLU")
@@ -1606,10 +1222,8 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             const caffe::ReLUParameter& relu_param = layer.relu_param();
             if (relu_param.has_negative_slope())
             {
-                //sprintf(tmp, " 0=%f", relu_param.negative_slope());
-                //pp += tmp;
                 MTappend(&pp,0);
-                MTappend(&pp,relu_param.negative_slope());
+                MTappend(&pp,(float)relu_param.negative_slope());
             }
         }
         else if (layer.type() == "Reshape")
@@ -1618,20 +1232,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             const caffe::BlobShape& bs = reshape_param.shape();
             if (bs.dim_size() == 1)
             {
-                /*sprintf(tmp, " 0=%ld 1=-233 2=-233", bs.dim(0));
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,0);
                 MTappend(&pp,(int)bs.dim(0));
                 MTappend(&pp,1);
@@ -1641,20 +1241,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             }
             else if (bs.dim_size() == 2)
             {
-                /*sprintf(tmp, " 0=%ld 1=%ld 2=-233", bs.dim(1), bs.dim(0));
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,0);
                 MTappend(&pp,(int)bs.dim(1));
                 MTappend(&pp,1);
@@ -1664,20 +1250,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             }
             else if (bs.dim_size() == 3)
             {
-                /*sprintf(tmp, " 0=%ld 1=%ld 2=%ld", bs.dim(2), bs.dim(1), bs.dim(0));
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,0);
                 MTappend(&pp,(int)bs.dim(2));
                 MTappend(&pp,1);
@@ -1687,20 +1259,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             }
             else // bs.dim_size() == 4
             {
-                /*sprintf(tmp, " 0=%ld 1=%ld 2=%ld", bs.dim(3), bs.dim(2), bs.dim(1));
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,0);
                 MTappend(&pp,(int)bs.dim(3));
                 MTappend(&pp,1);
@@ -1708,12 +1266,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                 MTappend(&pp,2);
                 MTappend(&pp,(int)bs.dim(1));
             }
-            /*sprintf(tmp, " 3=0");// permute
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,3);
             MTappend(&pp,0);
         }
@@ -1736,33 +1288,15 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             if (scale_weight)
             {
                 const caffe::BlobProto& weight_blob = binlayer.blobs(0);
-                /*sprintf(tmp, " 0=%d", (int)weight_blob.data_size());
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,0);
                 MTappend(&pp,(int)weight_blob.data_size());
             }
             else
             {
-                /*sprintf(tmp, " 0=-233");
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,0);
                 MTappend(&pp,-233);
             }
 
-            /*sprintf(tmp, " 1=%d", scale_param.bias_term());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,1);
             MTappend(&pp,scale_param.bias_term());
 
@@ -1776,12 +1310,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         {
             const caffe::ShuffleChannelParameter&
                     shuffle_channel_param = layer.shuffle_channel_param();
-            /*sprintf(tmp, " 0=%d", shuffle_channel_param.group());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
             MTappend(&pp,(int)shuffle_channel_param.group());
         }
@@ -1791,56 +1319,28 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
             if (slice_param.has_slice_dim())
             {
                 int num_slice = layer.top_size();
-                /*sprintf(tmp, " -23300=%d", num_slice);
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,-23300);
                 MTappend(&pp,num_slice);
                 for (int j=0; j<num_slice; j++)
                 {
-                    /*sprintf(tmp, ",-233");
-                    pp += tmp;
-                    parm_int = 3;
-                    stringAppend(&pp,&parm_int,sizeof(int));
-                    parm_int = ;
-                    stringAppend(&pp,&parm_int,sizeof(int));*/
                     MTappend(&pp,-233);
                 }
             }
             else
             {
                 int num_slice = slice_param.slice_point_size() + 1;
-                /*sprintf(tmp, " -23300=%d", num_slice);
-                pp += tmp;
-                parm_int = 3;
-                stringAppend(&pp,&parm_int,sizeof(int));
-                parm_int = ;
-                stringAppend(&pp,&parm_int,sizeof(int));*/
                 MTappend(&pp,-23300);
                 MTappend(&pp,num_slice);
                 int prev_offset = 0;
                 for (int j=0; j<slice_param.slice_point_size(); j++)
                 {
                     int offset = slice_param.slice_point(j);
-                    //sprintf(tmp, ",%d", offset - prev_offset);
-                    //pp += tmp;
                     MTappend(&pp,offset - prev_offset);
                     prev_offset = offset;
                 }
-                //sprintf(tmp, ",-233");
-                //pp += tmp;
                 MTappend(&pp,-233);
             }
             int dim = slice_param.axis() - 1;
-            /*sprintf(tmp, " 1=%d", dim);
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,1);
             MTappend(&pp,dim);
         }
@@ -1848,32 +1348,16 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
         {
             const caffe::SoftmaxParameter& softmax_param = layer.softmax_param();
             int dim = softmax_param.axis() - 1;
-            /*sprintf(tmp, " 0=%d", dim);
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
             MTappend(&pp,0);
             MTappend(&pp,dim);
         }
         else if (layer.type() == "Threshold")
         {
             const caffe::ThresholdParameter& threshold_param = layer.threshold_param();
-            /*sprintf(tmp, " 0=%f", threshold_param.threshold());
-            pp += tmp;
-            parm_int = 3;
-            stringAppend(&pp,&parm_int,sizeof(int));
-            parm_int = ;
-            stringAppend(&pp,&parm_int,sizeof(int));*/
-            parm_float = threshold_param.threshold();
             MTappend(&pp,0);
-            MTappend(&pp,parm_float);
+            MTappend(&pp,(float)threshold_param.threshold());
         }
         MTappend(&pp,-233);
-
-        //sprintf(tmp, "\n");
-        //pp += tmp;
 
         // add split layer if top reference larger than one
         if (layer.bottom_size() == 1 && layer.top_size() == 1 && layer.bottom(0) == layer.top(0))
@@ -1886,9 +1370,6 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                 {
                     char splitname[256];
                     sprintf(splitname, "splitncnn_%d", internal_split);
-                    /*sprintf(tmp, "%-16s %-16s %d %d  %s", "Split", splitname, 1, refcount
-                        , blob_name.c_str());
-                    pp += tmp;*/
                     sprintf(tmp,"%s",blob_name.c_str());
                     MTappend(&pp,"Split");
                     MTappend(&pp,splitname);
@@ -1899,11 +1380,8 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                     for (int j=0; j<refcount; j++)
                     {
                         sprintf(tmp, "%s_splitncnn_%d", blob_name.c_str(), j);
-                        //pp += tmp;
                         MTappend(&pp,tmp);
                     }
-                    //sprintf(tmp, "\n");
-                    //pp += tmp;
                     MTappend(&pp,-233);
 
                     internal_split++;
@@ -1922,11 +1400,8 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                     {
                         char splitname[256];
                         sprintf(splitname, "splitncnn_%d", internal_split);
-                        /*sprintf(tmp, "%-16s %-16s %d %d %s", "Split", splitname, 1, refcount
-                            , blob_name.c_str());
-                        pp += tmp;*/
                         sprintf(tmp,"%s",blob_name.c_str());
-                        MTappend(&pp,"Split");
+                        MTappend(&pp,(char *)"Split");
                         MTappend(&pp,splitname);
                         MTappend(&pp,1);
                         MTappend(&pp,refcount);
@@ -1935,11 +1410,8 @@ int Model_Caffe::caffe2ncnn(const char* caffeproto,
                         for (int j=0; j<refcount; j++)
                         {
                             sprintf(tmp, "%s_splitncnn_%d", blob_name.c_str(), j);
-                            //pp += tmp;
                             MTappend(&pp,tmp);
                         }
-                        //sprintf(tmp, "\n");
-                        //pp += tmp;
                         MTappend(&pp,-233);
 
                         internal_split++;
