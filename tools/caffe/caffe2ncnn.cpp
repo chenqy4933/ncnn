@@ -488,7 +488,15 @@ int main(int argc, char** argv)
             {
                 fprintf(pp, " 3=%d", convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1);
             }
-            fprintf(pp, " 4=%d", convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0);
+            if (convolution_param.has_pad_w() && convolution_param.has_pad_h())
+            {
+                fprintf(pp, " 4=%d", convolution_param.pad_w());
+                fprintf(pp, " 14=%d", convolution_param.pad_h());
+            }
+            else
+            {
+                fprintf(pp, " 4=%d", convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0);
+            }
             fprintf(pp, " 5=%d", convolution_param.bias_term());
             fprintf(pp, " 6=%d", weight_blob.data_size());
 
@@ -503,6 +511,7 @@ int main(int argc, char** argv)
 
             for (int j = 0; j < binlayer.blobs_size(); j++)
             {
+              printf("binlayer.blobs_size():%d, j:%d\n", binlayer.blobs_size(), j);
                 int quantize_tag = 0;
                 const caffe::BlobProto& blob = binlayer.blobs(j);
 
@@ -523,7 +532,7 @@ int main(int argc, char** argv)
                     quantize_tag = quantize_weight((float *)blob.data().data(), blob.data_size(), float16_weights);
                     }
                 }
-
+              printf("quantize_tag:%d\n", quantize_tag);
                 // write quantize tag first
                 if (j == 0)
                     fwrite(&quantize_tag, sizeof(int), 1, bp);
@@ -550,6 +559,7 @@ int main(int argc, char** argv)
                 else
                 {
                     // write original data
+                  printf("blob.data_size():%d, blob.data().data()[0]:%f\n", blob.data_size(), blob.data().data()[0]);
                     fwrite(blob.data().data(), sizeof(float), blob.data_size(), bp);
                 }
             }
@@ -621,6 +631,7 @@ int main(int argc, char** argv)
                 fwrite(blob.data().data(), sizeof(float), blob.data_size(), bp);
             }
         }
+#if 0
         else if (layer.type() == "DetectionOutput")
         {
             const caffe::DetectionOutputParameter& detection_output_param = layer.detection_output_param();
@@ -640,6 +651,7 @@ int main(int argc, char** argv)
                 fprintf(pp, " 0=%f", scale);
             }
         }
+#endif
         else if (layer.type() == "Eltwise")
         {
             const caffe::EltwiseParameter& eltwise_param = layer.eltwise_param();
@@ -773,6 +785,7 @@ int main(int argc, char** argv)
             fprintf(pp, " 1=%d", mvn_param.across_channels());
             fprintf(pp, " 2=%f", mvn_param.eps());
         }
+#if 0
         else if (layer.type() == "Normalize")
         {
             const caffe::LayerParameter& binlayer = net.layer(netidx);
@@ -847,6 +860,7 @@ int main(int argc, char** argv)
             }
             fprintf(pp, " 0=%d", order_type);
         }
+#endif
         else if (layer.type() == "Pooling")
         {
             const caffe::PoolingParameter& pooling_param = layer.pooling_param();
@@ -894,6 +908,7 @@ int main(int argc, char** argv)
             fprintf(pp, " 0=%d", slope_blob.data_size());
             fwrite(slope_blob.data().data(), sizeof(float), slope_blob.data_size(), bp);
         }
+#if 0
         else if (layer.type() == "PriorBox")
         {
             const caffe::PriorBoxParameter& prior_box_param = layer.prior_box_param();
@@ -982,6 +997,7 @@ int main(int argc, char** argv)
             fprintf(pp, " 12=%f", step_height);
             fprintf(pp, " 13=%f", prior_box_param.offset());
         }
+#endif
         else if (layer.type() == "Python")
         {
             const caffe::PythonParameter& python_param = layer.python_param();
@@ -1036,6 +1052,7 @@ int main(int argc, char** argv)
             }
             fprintf(pp, " 3=0");// permute
         }
+#if 0
         else if (layer.type() == "ROIPooling")
         {
             const caffe::ROIPoolingParameter& roi_pooling_param = layer.roi_pooling_param();
@@ -1043,6 +1060,7 @@ int main(int argc, char** argv)
             fprintf(pp, " 1=%d", roi_pooling_param.pooled_h());
             fprintf(pp, " 2=%f", roi_pooling_param.spatial_scale());
         }
+#endif
         else if (layer.type() == "Scale")
         {
             const caffe::LayerParameter& binlayer = net.layer(netidx);

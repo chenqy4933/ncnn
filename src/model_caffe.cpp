@@ -620,9 +620,21 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 parm_int = convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1;
                 MTappend(&pp,parm_int);
             }
-            MTappend(&pp,4);
-            parm_int = convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0;
-            MTappend(&pp,parm_int);
+            if (convolution_param.has_pad_w() && convolution_param.has_pad_h())
+            {
+                MTappend(&pp,4);
+                parm_int = convolution_param.pad_w();
+                MTappend(&pp,parm_int);
+                MTappend(&pp,14);
+                parm_int = convolution_param.pad_h();
+                MTappend(&pp,parm_int);
+            }
+            else
+            {
+                MTappend(&pp,4);
+                parm_int = convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0;
+                MTappend(&pp,parm_int);
+            }
             MTappend(&pp,5);
             MTappend(&pp,(int)convolution_param.bias_term());
             MTappend(&pp,6);
