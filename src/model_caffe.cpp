@@ -82,7 +82,8 @@ stringAppend(MTString * s, const void *str, int len)
 	} else {
 		MTString snew = StringNull;
         long newlen = s->len + len;
-		stringInitBuf(&snew, newlen + Mem64k);
+        long extsize = (len > Mem64k?(len & 0xFFFF0000):Mem64k);
+		stringInitBuf(&snew, newlen + extsize);
 		if (s->len)
 			memcpy(snew.buf, s->buf, s->len);
 		if (len)
@@ -230,7 +231,9 @@ bool Model_Caffe::quantize_weight(float *data, size_t data_length, int quantize_
 }
 
 
-bool Model_Caffe::read_proto_from_text(const char* filepath, google::protobuf::Message* message)
+bool Model_Caffe::read_proto_from_text(const char* filepath,
+    google::protobuf::Message* message,
+    long *size)
 {
     std::ifstream fs(filepath, std::ifstream::in);
     if (!fs.is_open())
@@ -238,7 +241,10 @@ bool Model_Caffe::read_proto_from_text(const char* filepath, google::protobuf::M
         fprintf(stderr, "open failed %s\n", filepath);
         return false;
     }
-
+    fs.seekg(0,std::ifstream::end);
+    *size = fs.tellg();
+    fs.seekg(0,std::ifstream::beg);
+    
     google::protobuf::io::IstreamInputStream input(&fs);
     bool success = google::protobuf::TextFormat::Parse(&input, message);
 
@@ -247,7 +253,9 @@ bool Model_Caffe::read_proto_from_text(const char* filepath, google::protobuf::M
     return success;
 }
 
-bool Model_Caffe::read_proto_from_binary(const char* filepath, google::protobuf::Message* message)
+bool Model_Caffe::read_proto_from_binary(const char* filepath,
+    google::protobuf::Message* message,
+    long *size)
 {
     std::ifstream fs(filepath, std::ifstream::in | std::ifstream::binary);
     if (!fs.is_open())
@@ -255,6 +263,10 @@ bool Model_Caffe::read_proto_from_binary(const char* filepath, google::protobuf:
         fprintf(stderr, "open failed %s\n", filepath);
         return false;
     }
+    fs.seekg(0,std::ifstream::end);
+    *size = fs.tellg();
+    fs.seekg(0,std::ifstream::beg);
+    
 
     google::protobuf::io::IstreamInputStream input(&fs);
     google::protobuf::io::CodedInputStream codedstr(&input);
@@ -270,7 +282,6 @@ bool Model_Caffe::read_proto_from_binary(const char* filepath, google::protobuf:
 
 int Model_Caffe::caffe2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
-        long *model_mem_len,
         const char* caffemodel,
         const char* caffeproto)
 {
@@ -279,38 +290,44 @@ int Model_Caffe::caffe2ncnn(unsigned char** ppm,
     {
         caffe::NetParameter proto;
         caffe::NetParameter net;
-        bool s0 = read_proto_from_text(caffeproto, &proto);
+        long proto_size;
+        long net_size;
+    
+        bool s0 = read_proto_from_text(caffeproto, &proto, &proto_size);
         if (!s0)
         {
             fprintf(stderr, "read_proto_from_text failed\n");
             return -1;
         }
-        bool s1 = read_proto_from_binary(caffemodel, &net);
+        bool s1 = read_proto_from_binary(caffemodel, &net, &net_size);
         if (!s1)
         {
             fprintf(stderr, "read_proto_from_binary failed\n");
             return -1;
         }
-        return CaffeNetParameter2ncnn(ppm,	bpm, model_mem_len, proto, net);
+        return CaffeNetParameter2ncnn(ppm,	bpm, proto, net,proto_size,net_size);
     }
     else
     {
         caffe::NetParameter net;
-        bool s1 = read_proto_from_binary(caffemodel, &net);
+        long net_size;
+        
+        bool s1 = read_proto_from_binary(caffemodel, &net, &net_size);
         if (!s1)
         {
             fprintf(stderr, "read_proto_from_binary failed\n");
             return -1;
         }
-        return CaffeNetParameter2ncnn(ppm,	bpm, model_mem_len, net, net);
+        return CaffeNetParameter2ncnn(ppm,	bpm, net, net, net_size, Mem64k);
     }
 }
 
 int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
-        long *model_mem_len,
         caffe::NetParameter& proto,
-        caffe::NetParameter& net)
+        caffe::NetParameter& net,
+        long proto_sz,
+        long net_sz)
 {
     //current only use quantize_level = 0
     int quantize_level = 0;
@@ -320,11 +337,12 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
         fprintf(stderr, "NCNN: only support quantize level = 0, 256, or 65536");
         return -1;
     }
+
     //std::vector<Mat> bp;
     MTString pp;
-    stringInitBuf(&pp,Mem64k);
+    stringInitBuf(&pp,proto_sz);
     MTString bp;
-    stringInitBuf(&bp,Mem64k);
+    stringInitBuf(&bp,net_sz);
     int parm_int;
     
     // magic
@@ -1445,7 +1463,6 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
 
     *ppm = (unsigned char *)pp.buf;
     *bpm = (unsigned char *)bp.buf;
-    *model_mem_len = bp.len;
     return 0;
 
 }

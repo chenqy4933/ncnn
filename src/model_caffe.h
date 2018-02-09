@@ -76,8 +76,8 @@ protected:
 	static unsigned short float2half(float value);
 	static int quantize_weight(float *data, size_t data_length, std::vector<unsigned short>& float16_weights);
 	static bool quantize_weight(float *data, size_t data_length, int quantize_level, std::vector<float> &quantize_table, std::vector<unsigned char> &quantize_index);
-	static bool read_proto_from_text(const char* filepath, google::protobuf::Message* message);
-	static bool read_proto_from_binary(const char* filepath, google::protobuf::Message* message);
+	static bool read_proto_from_text(const char* filepath, google::protobuf::Message* message,long *size);
+	static bool read_proto_from_binary(const char* filepath, google::protobuf::Message* message,long *size);
 	
 	const unsigned char*& mem;
 };

@@ -405,7 +405,7 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
     ret = Model_Caffe::caffe2ncnn(&proto_mem,&model_mem,&model_mem_len,modelpath,protopath);
     if (ret != 0)
     {
-        fprintf(stderr, "Model_Caffe::caffe2ncnn failed, %s. %s.\n",protopath,modelpath);
+        fprintf(stderr, "Model_Caffe::caffe2ncnn failed, %s. %s %ld.\n",protopath,modelpath,model_mem_len);
         return -1;
     }
     ret = load_caffe_param(proto_mem);
@@ -414,6 +414,7 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
         fprintf(stderr, "Model_Caffe::load_param failed, %s. %s.\n",protopath,modelpath);
         return -1;
     }
+    #if 0
     FILE* outfile = fopen("./test.bin", "wb");
     if (outfile == NULL)
       fprintf(stderr, "fileName:%s open error\n", "./test.bin");
@@ -422,11 +423,11 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
       fwrite(model_mem, sizeof(char), model_mem_len, outfile);
       fclose(outfile);
     }
-    
+    #endif
     ret = load_model(model_mem);
     if (ret != 0)
     {
-        fprintf(stderr, "Model_Caffe::load_model failed, %s. %s.\n",protopath,modelpath);
+        fprintf(stderr, "Model_Caffe::load_model failed, %s. %s %ld.\n",protopath,modelpath,model_mem_len);
         return -1;
     }
     return ret;
