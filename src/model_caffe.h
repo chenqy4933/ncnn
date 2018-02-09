@@ -33,15 +33,15 @@ public:
 
 	static int caffe2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
-        long *model_mem_len,
         const char* caffemodel,
         const char* caffeproto = NULL);
 	
 	static int CaffeNetParameter2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
-        long *model_mem_len,
         caffe::NetParameter& proto,
-        caffe::NetParameter& net);
+        caffe::NetParameter& net,
+        long proto_sz,
+        long net_sz);
 
     Model_Caffe();
 	
