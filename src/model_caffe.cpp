@@ -274,19 +274,11 @@ int Model_Caffe::caffe2ncnn(unsigned char** ppm,
         const char* caffemodel,
         const char* caffeproto)
 {
-    //current only use quantize_level = 0
-    int quantize_level = 0;
-    caffe::NetParameter proto;
-    caffe::NetParameter net;
-    char tmp[4096];
-
-    if (quantize_level != 0 && quantize_level != 256 && quantize_level != 65536) {
-        fprintf(stderr, "NCNN: only support quantize level = 0, 256, or 65536");
-        return -1;
-    }
     // load
     if (caffeproto != NULL)
     {
+        caffe::NetParameter proto;
+        caffe::NetParameter net;
         bool s0 = read_proto_from_text(caffeproto, &proto);
         if (!s0)
         {
@@ -299,24 +291,35 @@ int Model_Caffe::caffe2ncnn(unsigned char** ppm,
             fprintf(stderr, "read_proto_from_binary failed\n");
             return -1;
         }
+        return CaffeNetParameter2ncnn(ppm,	bpm, model_mem_len, proto, net);
     }
     else
     {
-        bool s0 = read_proto_from_binary(caffemodel, &proto);
-        if (!s0)
-        {
-            fprintf(stderr, "read_proto_from_binary failed\n");
-            return -1;
-        }
+        caffe::NetParameter net;
         bool s1 = read_proto_from_binary(caffemodel, &net);
         if (!s1)
         {
             fprintf(stderr, "read_proto_from_binary failed\n");
             return -1;
         }
+        return CaffeNetParameter2ncnn(ppm,	bpm, model_mem_len, net, net);
     }
-    
+}
 
+int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
+		unsigned char** bpm,
+        long *model_mem_len,
+        caffe::NetParameter& proto,
+        caffe::NetParameter& net)
+{
+    //current only use quantize_level = 0
+    int quantize_level = 0;
+    char tmp[4096];
+
+    if (quantize_level != 0 && quantize_level != 256 && quantize_level != 65536) {
+        fprintf(stderr, "NCNN: only support quantize level = 0, 256, or 65536");
+        return -1;
+    }
     //std::vector<Mat> bp;
     MTString pp;
     stringInitBuf(&pp,Mem64k);

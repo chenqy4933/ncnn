@@ -37,6 +37,12 @@ public:
         const char* caffemodel,
         const char* caffeproto = NULL);
 	
+	static int CaffeNetParameter2ncnn(unsigned char** ppm,
+		unsigned char** bpm,
+        long *model_mem_len,
+        caffe::NetParameter& proto,
+        caffe::NetParameter& net);
+
     Model_Caffe();
 	
 	static inline size_t alignSize(size_t sz, int n)
