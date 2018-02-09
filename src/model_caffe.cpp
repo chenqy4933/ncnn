@@ -1410,7 +1410,7 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                     char splitname[256];
                     sprintf(splitname, "splitncnn_%d", internal_split);
                     sprintf(tmp,"%s",blob_name.c_str());
-                    MTappend(&pp,"Split");
+                    MTappend(&pp,(char *)"Split");
                     MTappend(&pp,splitname);
                     MTappend(&pp,1);
                     MTappend(&pp,refcount);
