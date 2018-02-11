@@ -773,9 +773,19 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 parm_int = convolution_param.stride_size() != 0 ? convolution_param.stride(0) : 1;
                 MTappend(&pp, parm_int);
             }
-            MTappend(&pp,4);
-            parm_int = convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0;
-            MTappend(&pp,parm_int);
+            if (convolution_param.has_pad_w() && convolution_param.has_pad_h())
+            {
+                MTappend(&pp,4);
+                MTappend(&pp,(int)convolution_param.pad_w());
+                MTappend(&pp,14);
+                MTappend(&pp,(int)convolution_param.pad_h());
+            }
+            else
+            {
+                MTappend(&pp, 4);
+                parm_int = convolution_param.pad_size() != 0 ? convolution_param.pad(0) : 0;
+                MTappend(&pp, parm_int);
+            }
             MTappend(&pp,5);
             MTappend(&pp,(int)convolution_param.bias_term());
             MTappend(&pp,6);
@@ -791,15 +801,23 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             stringAppend(&bp, &quantized_weight, sizeof(int)* 1);
             
             // reorder weight from inch-outch to outch-inch
-            int ksize = convolution_param.kernel_size(0);
+            int ksize ;
+            if (convolution_param.has_kernel_w() && convolution_param.has_kernel_h())
+            {
+                ksize = convolution_param.kernel_w() * convolution_param.kernel_h();
+            }
+            else
+            {
+                ksize = convolution_param.kernel_size(0) * convolution_param.kernel_size(0);
+            }
             int num_output = convolution_param.num_output();
-            int num_input = weight_blob.data_size() / (ksize * ksize) / num_output;
+            int num_input = weight_blob.data_size() / (ksize) / num_output;
             const float* weight_data_ptr = weight_blob.data().data();
             for (int k=0; k<num_output; k++)
             {
                 for (int j=0; j<num_input; j++)
                 {
-                    stringAppend(&bp, weight_data_ptr + (j*num_output + k) * ksize * ksize, sizeof(float) * ksize * ksize);
+                    stringAppend(&bp, weight_data_ptr + (j*num_output + k) * ksize, sizeof(float) * ksize);
                 }
             }
 
@@ -1367,7 +1385,9 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
         else if (layer.type() == "Slice")
         {
             const caffe::SliceParameter& slice_param = layer.slice_param();
-            if (slice_param.has_slice_dim())
+            //NCNN:  slice_dim means slice_point is no avalabe
+            //MEITU: slice_dim means slice_point is avalabe
+            if (!slice_param.has_slice_dim())
             {
                 int num_slice = layer.top_size();
                 MTappend(&pp,-23300);

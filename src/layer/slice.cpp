@@ -141,6 +141,7 @@ int Slice::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_b
             int slice = slices_ptr[i];
             if (slice == -233)
             {
+                //hyq: error, slice may not be divided by next layer which have grouup parm.
                 slice = (channels - q) / (top_blobs.size() - i);
             }
 
