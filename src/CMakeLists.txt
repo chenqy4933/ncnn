@@ -14,7 +14,6 @@ set(ncnn_SRCS
     mat.cpp
     mat_pixel.cpp
     modelbin.cpp
-    model_caffe.cpp
     net.cpp
     opencv.cpp
     paramdict.cpp
@@ -144,11 +143,11 @@ ncnn_add_layer(DeconvolutionDepthWise)
 ncnn_add_layer(ShuffleChannel)
 
 protobuf_generate_cpp(CAFFE_PROTO_SRCS CAFFE_PROTO_HDRS ${CAFFE_PROTO_PATH})
-add_library(ncnn STATIC ${ncnn_SRCS} ${CAFFE_PROTO_SRCS} ${CAFFE_PROTO_HDRS})
+add_library(ncnn ${ncnn_SRCS} ${CAFFE_PROTO_SRCS} ${CAFFE_PROTO_HDRS})
 
 target_link_libraries(ncnn ${PROTOBUF_LIBRARIES})
 
-install(TARGETS ncnn ARCHIVE DESTINATION lib)
+install(TARGETS ncnn DESTINATION lib)
 install(FILES
     blob.h
     cpu.h
@@ -156,7 +155,6 @@ install(FILES
     layer_type.h
     mat.h
     modelbin.h
-    model_caffe.h
     net.h
     opencv.h
     paramdict.h
