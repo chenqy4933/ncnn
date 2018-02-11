@@ -12,41 +12,34 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef LAYER_BINARYOP_H
-#define LAYER_BINARYOP_H
+#ifndef LAYER_INSTANCENORM_H
+#define LAYER_INSTANCENORM_H
 
 #include "layer.h"
 
 namespace ncnn {
 
-class BinaryOp : public Layer
+class InstanceNorm : public Layer
 {
 public:
-    BinaryOp();
+    InstanceNorm();
 
     virtual int load_param(const ParamDict& pd);
 
-    virtual int forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_blobs) const;
+    virtual int load_model(const ModelBin& mb);
 
     virtual int forward_inplace(Mat& bottom_top_blob) const;
 
-    enum {
-        Operation_ADD   = 0,
-        Operation_SUB   = 1,
-        Operation_MUL   = 2,
-        Operation_DIV   = 3,
-        Operation_MAX   = 4,
-        Operation_MIN   = 5,
-        Operation_POW   = 6
-    };
-
 public:
     // param
-    int op_type;
-    int with_scalar;
-    float b;
+    int channels;
+    float eps;
+
+    // model
+    Mat gamma_data;
+    Mat beta_data;
 };
 
 } // namespace ncnn
 
-#endif // LAYER_BINARYOP_H
+#endif // LAYER_INSTANCENORM_H

@@ -141,6 +141,7 @@ ncnn_add_layer(DetectionOutput)
 ncnn_add_layer(Interp)
 ncnn_add_layer(DeconvolutionDepthWise)
 ncnn_add_layer(ShuffleChannel)
+ncnn_add_layer(InstanceNorm)
 
 protobuf_generate_cpp(CAFFE_PROTO_SRCS CAFFE_PROTO_HDRS ${CAFFE_PROTO_PATH})
 add_library(ncnn STATIC ${ncnn_SRCS} ${CAFFE_PROTO_SRCS} ${CAFFE_PROTO_HDRS})
