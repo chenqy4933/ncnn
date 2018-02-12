@@ -38,10 +38,12 @@ int Layer::load_model(const ModelBin& /*mb*/)
     return 0;
 }
 
+#if 0
 int Layer::load_model(const caffe::LayerParameter& /*param*/)
 {
     return 0;
 }
+#endif
 
 int Layer::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_blobs) const
 {

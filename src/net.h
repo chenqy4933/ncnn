@@ -81,7 +81,7 @@ public:
     // construct an Extractor from network
     Extractor create_extractor() const;
 
-protected:
+//protected:
     friend class Extractor;
 #if NCNN_STRING
     int find_blob_index_by_name(const char* name) const;
@@ -92,7 +92,7 @@ protected:
     Layer* create_custom_layer(int index);
     int forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightmode) const;
 
-protected:
+//protected:
     std::vector<Blob> blobs;
     std::vector<Layer*> layers;
 
