@@ -894,6 +894,34 @@ int main(int argc, char** argv)
             }
             fprintf(pp, " 4=%d", pooling_param.has_global_pooling() ? pooling_param.global_pooling() : 0);
         }
+
+        else if (layer.type() == "Upsample")
+        {
+            const caffe::UpsampleParameter& upsample_param = layer.upsample_param();
+            if (upsample_param.has_scale())
+            {
+                fprintf(pp, " 0=%d", upsample_param.scale());
+            }
+            else if (upsample_param.has_scale_h() && upsample_param.has_scale_w())
+            {
+                fprintf(pp, " 1=%d", upsample_param.scale_w());
+                fprintf(pp, " 11=%d", upsample_param.scale_h());
+            }
+            else //if(upsample_param.has_upsample_w() && upsample_param.has_upsample_h())
+            {
+                if(upsample_param.has_upsample_w() && upsample_param.has_upsample_h())
+                {
+                    fprintf(pp, " 2=%d", upsample_param.upsample_w());
+                    fprintf(pp, " 12=%d", upsample_param.upsample_h());
+                }
+            }
+            if(upsample_param.has_pad_out_w() && upsample_param.has_pad_out_h())
+            {
+                fprintf(pp, " 3=%d", upsample_param.pad_out_w());
+                fprintf(pp, " 13=%d", upsample_param.pad_out_h());
+            }
+        }
+
         else if (layer.type() == "Power")
         {
             const caffe::PowerParameter& power_param = layer.power_param();
