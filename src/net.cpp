@@ -653,6 +653,14 @@ int Net::load_caffe_param(const unsigned char* _mem)
             blob_index++;
         }
 
+        if(layer->type == "Input")
+        {
+            for (int j=0; j<top_count; j++)
+            {
+                input_blobs.push_back(layer->tops[j]);
+            }
+        }
+
         // layer specific params
         int pdlr = pd.load_param(mem);
         if (pdlr != 0)
@@ -670,6 +678,12 @@ int Net::load_caffe_param(const unsigned char* _mem)
 
         layers[i] = layer;
 
+    }
+
+    for (int i=0; i<blob_count; i++)
+    {
+        if(blobs[i].consumers.size() == 0)
+            output_blobs.push_back(i);
     }
 
     return 0;

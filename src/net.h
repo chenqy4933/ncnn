@@ -96,6 +96,9 @@ protected:
     std::vector<Blob> blobs;
     std::vector<Layer*> layers;
 
+	std::vector<int> input_blobs;
+	std::vector<int> output_blobs;
+
     std::vector<layer_registry_entry> custom_layer_registry;
 };
 
