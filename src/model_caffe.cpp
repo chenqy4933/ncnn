@@ -1139,6 +1139,40 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             MTappend(&pp,4);
             MTappend(&pp,pooling_param.has_global_pooling() ? pooling_param.global_pooling() : 0);
         }
+        else if (layer.type() == "Upsample")
+        {
+            const caffe::UpsampleParameter &upsample_param = layer.upsample_param();
+            if (upsample_param.has_scale())
+            {
+                MTappend(&pp, 0);
+                MTappend(&pp, (int)upsample_param.scale());
+            }
+            else if (upsample_param.has_scale_h() && upsample_param.has_scale_w())
+            {
+                MTappend(&pp, 1);
+                MTappend(&pp, (int)upsample_param.scale_w());
+                MTappend(&pp, 11);
+                MTappend(&pp, (int)upsample_param.scale_h());
+            }
+            else //if(upsample_param.has_upsample_w() && upsample_param.has_upsample_h())
+            {
+                if (upsample_param.has_upsample_w() && upsample_param.has_upsample_h())
+                {
+                    MTappend(&pp, 2);
+                    MTappend(&pp, (int)upsample_param.upsample_w());
+                    MTappend(&pp, 12);
+                    MTappend(&pp, (int)upsample_param.upsample_h());
+                }
+            }
+            if (upsample_param.has_pad_out_w() && upsample_param.has_pad_out_h())
+            {
+                MTappend(&pp, 3);
+                MTappend(&pp, (int)upsample_param.pad_out_w());
+                MTappend(&pp, 13);
+                MTappend(&pp, (int)upsample_param.pad_out_h());
+            }
+        }
+        
         else if (layer.type() == "Power")
         {
             const caffe::PowerParameter& power_param = layer.power_param();
