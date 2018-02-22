@@ -322,6 +322,16 @@ int Model_Caffe::caffe2ncnn(unsigned char** ppm,
     }
 }
 
+int Model_Caffe::caffe2ncnn(unsigned char** ppm,
+		unsigned char** bpm,
+        const char* mergemodel_mem,
+        int net_size)
+{
+    caffe::NetParameter net;
+    net.ParseFromArray(mergemodel_mem, net_size);
+    return CaffeNetParameter2ncnn(ppm,	bpm, net, net, net_size, Mem64k);
+}
+
 int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
         caffe::NetParameter& proto,

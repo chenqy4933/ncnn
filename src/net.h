@@ -62,6 +62,7 @@ public:
 
 	//support protext/model of caffe.
 	int load_caffe_model(const char* pp,const char* mp);
+    int load_caffe_model(const char* mergemodel_mem, int net_size);
 	int load_caffe_param(const unsigned char* _mem);
     // load network structure from external memory
     // memory pointer must be 32-bit aligned

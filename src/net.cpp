@@ -432,6 +432,33 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
     return ret;
 }
 
+int Net::load_caffe_model(const char* mergemodel_mem, int net_size)
+{
+    //std::string proto_mem;
+    unsigned char* proto_mem;
+    unsigned char* model_mem;
+    int ret = 0 ;
+    ret = Model_Caffe::caffe2ncnn(&proto_mem,&model_mem,mergemodel_mem,net_size);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Model_Caffe::caffe2ncnn failed, %d\n",net_size);
+        return -1;
+    }
+    ret = load_caffe_param(proto_mem);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Model_Caffe::load_param failed, %s\n",net_size);
+        return -1;
+    }
+    ret = load_model(model_mem);
+    if (ret != 0)
+    {
+        fprintf(stderr, "Model_Caffe::load_model failed, %d. %s.\n",net_size);
+        return -1;
+    }
+    return ret;
+}
+
 #endif // NCNN_STDIO
 
 int Net::load_param(const unsigned char* _mem)

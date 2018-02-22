@@ -37,6 +37,11 @@ public:
         const char* caffemodel,
         const char* caffeproto = NULL);
 	
+	static int caffe2ncnn(unsigned char** ppm,
+		unsigned char** bpm,
+        const char* mergemodel_mem,
+        int net_size);
+
 	static int CaffeNetParameter2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
         caffe::NetParameter& proto,
