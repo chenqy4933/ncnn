@@ -22,7 +22,8 @@ namespace ncnn {
 class Pooling_arm : public Pooling
 {
 public:
-    virtual int forward(const Mat& bottom_blob, Mat& top_blob) const;
+  virtual int forward(const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs) const;
+  //virtual int forward(const Mat &bottom_blob, Mat &top_blob) const;
 };
 
 } // namespace ncnn

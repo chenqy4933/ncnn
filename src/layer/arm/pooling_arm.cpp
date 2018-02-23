@@ -21,14 +21,19 @@ namespace ncnn {
 
 DEFINE_LAYER_CREATOR(Pooling_arm)
 
-int Pooling_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
+int Pooling_arm::forward(const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs) const
 {
     // max value in NxN window
     // avg value in NxN window
 
     if (kernel_w != kernel_h || stride_w != stride_h)
     {
-        return Pooling::forward(bottom_blob, top_blob);
+        return Pooling::forward(bottom_blobs, top_blobs);
+    }
+
+    if (top_blobs.size() > 1)
+    {
+        return Pooling::forward(bottom_blobs, top_blobs);
     }
 
     const int kernel_size = kernel_w;
@@ -36,22 +41,22 @@ int Pooling_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
 
     if (pooling_type != PoolMethod_MAX || stride != 2 || global_pooling == 1)
     {
-        return Pooling::forward(bottom_blob, top_blob);
+        return Pooling::forward(bottom_blobs, top_blobs);
     }
 
     if (kernel_size != 2 && kernel_size != 3)
     {
-        return Pooling::forward(bottom_blob, top_blob);
+        return Pooling::forward(bottom_blobs, top_blobs);
     }
 
-    int w = bottom_blob.w;
-    int h = bottom_blob.h;
-    int channels = bottom_blob.c;
+    int w = bottom_blobs[0].w;
+    int h = bottom_blobs[0].h;
+    int channels = bottom_blobs[0].c;
 
-    Mat bottom_blob_bordered = bottom_blob;
+    Mat bottom_blob_bordered = bottom_blobs[0];
     if (pad_w > 0 || pad_h > 0)
     {
-        copy_make_border(bottom_blob, bottom_blob_bordered, pad_h, pad_h, pad_w, pad_w, BORDER_CONSTANT, 0.f);
+        copy_make_border(bottom_blobs[0], bottom_blob_bordered, pad_h, pad_h, pad_w, pad_w, BORDER_CONSTANT, 0.f);
         if (bottom_blob_bordered.empty())
             return -100;
 
@@ -64,7 +69,7 @@ int Pooling_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
         int hpad = kernel_h + (h - 1) / stride_h * stride_h - h;
         if (wpad > 0 || hpad > 0)
         {
-            copy_make_border(bottom_blob, bottom_blob_bordered, hpad / 2, hpad - hpad / 2, wpad / 2, wpad - wpad / 2, BORDER_CONSTANT, 0.f);
+            copy_make_border(bottom_blobs[0], bottom_blob_bordered, hpad / 2, hpad - hpad / 2, wpad / 2, wpad - wpad / 2, BORDER_CONSTANT, 0.f);
             if (bottom_blob_bordered.empty())
                 return -100;
         }
@@ -108,14 +113,14 @@ int Pooling_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
             outh += 1;
     }
 
-    top_blob.create(outw, outh, channels);
-    if (top_blob.empty())
-        return -100;
 
+    top_blobs[0].create(outw, outh, channels);
+    if (top_blobs[0].empty())
+        return -100;
     if (kernel_size == 2)
-        pooling2x2s2_max_neon(bottom_blob_bordered, top_blob);
+        pooling2x2s2_max_neon(bottom_blob_bordered, top_blobs[0]);
     if (kernel_size == 3)
-        pooling3x3s2_max_neon(bottom_blob_bordered, top_blob);
+        pooling3x3s2_max_neon(bottom_blob_bordered, top_blobs[0]);
 
     return 0;
 }
