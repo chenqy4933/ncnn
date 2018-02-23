@@ -206,6 +206,9 @@ static bool read_proto_from_binary(const char* filepath, google::protobuf::Messa
 
 int main(int argc, char** argv)
 {
+    int nolayerparam_layer = 0;
+    int nolayerparam_blob = 0;
+
     if (!(argc == 3 || argc == 5 || argc == 6))
     {
         fprintf(stderr, "Usage: %s [caffeproto] [caffemodel] [ncnnproto] [ncnnbin] [quantizelevel]\n", argv[0]);
@@ -297,6 +300,19 @@ int main(int argc, char** argv)
             }
         }
     }
+
+    //just support one input outside layerParam
+    if(proto.input_size())
+    {
+        std::string blob_name = proto.input(0);
+        nolayerparam_layer += 1;
+        if (bottom_reference.find(blob_name) == bottom_reference.end())
+        {
+            nolayerparam_blob += 1;
+            fprintf(stderr, "input %s is no used.\n", blob_name.c_str());
+        }
+    }
+    
     // remove bottom_reference entry with reference equals to one
     int splitncnn_blob_count = 0;
     std::map<std::string, int>::iterator it = bottom_reference.begin();
@@ -313,7 +329,36 @@ int main(int argc, char** argv)
             ++it;
         }
     }
-    fprintf(pp, "%lu %lu\n", layer_count + bottom_reference.size(), blob_names.size() + splitncnn_blob_count);
+    fprintf(pp, "%lu %lu\n", 
+        layer_count + bottom_reference.size() + nolayerparam_layer,
+        blob_names.size() + splitncnn_blob_count + nolayerparam_blob);
+
+    if(proto.input_size())
+    {
+        std::string blob_name = proto.input(0);
+        fprintf(pp, "%-16s %s%-8s 0 1 %s", "Input","nolayer_",
+            blob_name.c_str(),blob_name.c_str());
+        if (proto.input_dim_size() == 4)
+        {
+            fprintf(pp, " 0=%ld", proto.input_dim(3));
+            fprintf(pp, " 1=%ld", proto.input_dim(2));
+            fprintf(pp, " 2=%ld", proto.input_dim(1));
+        }
+        else if (proto.input_dim_size() == 3)
+        {
+            fprintf(pp, " 0=%ld", proto.input_dim(2));
+            fprintf(pp, " 1=%ld", proto.input_dim(1));
+            fprintf(pp, " 2=%ld", -233);        
+        }
+        else if (proto.input_dim_size() == 2)
+        {
+            fprintf(pp, " 0=%ld", proto.input_dim(1));
+            fprintf(pp, " 1=%ld", -233);
+            fprintf(pp, " 2=%ld", -233);
+        }
+        fprintf(pp, "\n");
+    }
+
 
     // populate
     blob_name_decorated.clear();

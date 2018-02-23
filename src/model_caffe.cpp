@@ -329,6 +329,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
         long proto_sz,
         long net_sz)
 {
+    int nolayerparam_layer = 0;
+    int nolayerparam_blob = 0;
     //current only use quantize_level = 0
     int quantize_level = 0;
     char tmp[4096];
@@ -401,6 +403,18 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             }
         }
     }
+
+    if(proto.input_size())
+    {
+        std::string blob_name = proto.input(0);
+        nolayerparam_layer += 1;
+        if (bottom_reference.find(blob_name) == bottom_reference.end())
+        {
+            nolayerparam_blob += 1;
+            fprintf(stderr, "input %s is no used.\n", blob_name.c_str());
+        }
+    }
+    
     // remove bottom_reference entry with reference equals to one
     int splitncnn_blob_count = 0;
     std::map<std::string, int>::iterator it = bottom_reference.begin();
@@ -418,10 +432,51 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
         }
     }
     
-    parm_int = layer_count + bottom_reference.size();
+    parm_int = layer_count + bottom_reference.size() + nolayerparam_layer;
     MTappend(&pp,parm_int);
-    parm_int = blob_names.size() + splitncnn_blob_count;
+    parm_int = blob_names.size() + splitncnn_blob_count + nolayerparam_blob;
     MTappend(&pp,parm_int);
+
+    if(proto.input_size())
+    {
+        std::string blob_name = proto.input(0);
+        sprintf(tmp, "%s", "Input");
+        MTappend(&pp,tmp); 
+        sprintf(tmp, "nolayerparam_%s", blob_name.c_str());
+        MTappend(&pp,tmp); 
+        MTappend(&pp,0);
+        MTappend(&pp,1);
+        sprintf(tmp, "%s", blob_name.c_str());
+        MTappend(&pp,tmp);
+        if (proto.input_dim_size() == 4)
+        {
+            MTappend(&pp,0);
+            MTappend(&pp,(int)proto.input_dim(3));
+            MTappend(&pp,1);
+            MTappend(&pp,(int)proto.input_dim(2));
+            MTappend(&pp,2);
+            MTappend(&pp,(int)proto.input_dim(1));
+        }
+        else if (proto.input_dim_size() == 3)
+        {
+            MTappend(&pp,0);
+            MTappend(&pp,(int)proto.input_dim(2));
+            MTappend(&pp,1);
+            MTappend(&pp,(int)proto.input_dim(1));
+            MTappend(&pp,2);
+            MTappend(&pp,-233);
+        }
+        else if (proto.input_dim_size() == 2)
+        {
+            MTappend(&pp,0);
+            MTappend(&pp,(int)proto.input_dim(1));
+            MTappend(&pp,1);
+            MTappend(&pp,-233);
+            MTappend(&pp,2);
+            MTappend(&pp,-233);
+        }
+        MTappend(&pp,-233);
+    }
 
     // populate
     blob_name_decorated.clear();
