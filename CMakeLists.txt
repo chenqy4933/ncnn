@@ -46,6 +46,10 @@ add_definitions(-ffast-math)
 
 # add_definitions(-flto)
 
+if (NCNN_USE_PROTOBUF_LITE)
+    add_definitions(-DNCNN_USE_PROTOBUF_LITE)
+endif()
+
 add_definitions(-fvisibility=hidden -fvisibility-inlines-hidden)
 
 if(ANDROID)

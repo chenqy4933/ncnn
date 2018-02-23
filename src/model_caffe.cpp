@@ -11,7 +11,11 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/text_format.h>
-#include <google/protobuf/message.h>
+#ifndef NCNN_USE_PROTOBUF_LITE
+#include "google/protobuf/message.h"
+#else
+#include "google/protobuf/message_lite.h"
+#endif
 
 #include "caffe.pb.h"
 
@@ -232,9 +236,14 @@ bool Model_Caffe::quantize_weight(float *data, size_t data_length, int quantize_
 
 
 bool Model_Caffe::read_proto_from_text(const char* filepath,
+#ifndef NCNN_USE_PROTOBUF_LITE
     google::protobuf::Message* message,
+#else
+    google::protobuf::MessageLite* message,
+#endif
     long *size)
 {
+#ifndef NCNN_USE_PROTOBUF_LITE
     std::ifstream fs(filepath, std::ifstream::in);
     if (!fs.is_open())
     {
@@ -251,12 +260,20 @@ bool Model_Caffe::read_proto_from_text(const char* filepath,
     fs.close();
 
     return success;
+#else
+    return false;
+#endif
 }
 
 bool Model_Caffe::read_proto_from_binary(const char* filepath,
+#ifndef NCNN_USE_PROTOBUF_LITE
     google::protobuf::Message* message,
+#else
+    google::protobuf::MessageLite* message,
+#endif
     long *size)
 {
+#ifndef NCNN_USE_PROTOBUF_LITE
     std::ifstream fs(filepath, std::ifstream::in | std::ifstream::binary);
     if (!fs.is_open())
     {
@@ -278,6 +295,9 @@ bool Model_Caffe::read_proto_from_binary(const char* filepath,
     fs.close();
 
     return success;
+#else
+    return false;
+#endif
 }
 
 int Model_Caffe::caffe2ncnn(unsigned char** ppm,
