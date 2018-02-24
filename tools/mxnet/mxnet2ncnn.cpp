@@ -855,6 +855,10 @@ int main(int argc, char** argv)
         {
             fprintf(pp, "%-16s", "UnaryOp");
         }
+        else if (n.op == "expand_dims")
+        {
+            fprintf(pp, "%-16s", "ExpandDims");
+        }
         else if (n.op == "Flatten")
         {
             fprintf(pp, "%-16s", "Flatten");
@@ -870,6 +874,10 @@ int main(int argc, char** argv)
         else if (n.op == "InstanceNorm")
         {
             fprintf(pp, "%-16s", "InstanceNorm");
+        }
+        else if (n.op == "L2Normalization")
+        {
+            fprintf(pp, "%-16s", "Normalize");
         }
         else if (n.op == "LeakyReLU")
         {
@@ -1283,6 +1291,25 @@ int main(int argc, char** argv)
             int op_type = 7;
             fprintf(pp, " 0=%d", op_type);
         }
+        else if (n.op == "expand_dims")
+        {
+            int axis = n.attr("axis");
+
+            int expand_w = 0;
+            int expand_h = 0;
+            int expand_c = 0;
+
+            if (axis == 0)
+                expand_c = 1;
+            if (axis == 1)
+                expand_h = 1;
+            if (axis == 2)
+                expand_w = 1;
+
+            fprintf(pp, " 0=%d", expand_w);
+            fprintf(pp, " 1=%d", expand_h);
+            fprintf(pp, " 2=%d", expand_c);
+        }
         else if (n.op == "Flatten")
         {
         }
@@ -1323,6 +1350,41 @@ int main(int argc, char** argv)
 
             fwrite(gamma_data.data(), sizeof(float), gamma_data.size(), bp);
             fwrite(beta_data.data(), sizeof(float), beta_data.size(), bp);
+        }
+        else if (n.op == "L2Normalization")
+        {
+            std::string mode = n.attr("mode");
+            float eps = n.has_attr("eps") ? n.attr("eps") : 1e-10;
+
+            int across_spatial = 0;
+            int across_channel = 1;
+            int channel_shared = 1;
+            int scale_data_size = 1;
+
+            if (mode == "instance")
+            {
+                across_spatial = 1;
+                across_channel = 1;
+            }
+            else if (mode == "channel")
+            {
+                across_spatial = 0;
+                across_channel = 1;
+            }
+            else if (mode == "spatial")
+            {
+                across_spatial = 1;
+                across_channel = 0;
+            }
+
+            fprintf(pp, " 0=%d", across_spatial);
+            fprintf(pp, " 4=%d", across_channel);
+            fprintf(pp, " 1=%d", channel_shared);
+            fprintf(pp, " 2=%f", eps);
+            fprintf(pp, " 3=%d", scale_data_size);
+
+            const float scale_data[1] = { 1.f };
+            fwrite(scale_data, sizeof(float), 1, bp);
         }
         else if (n.op == "LeakyReLU")
         {
