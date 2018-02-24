@@ -12,35 +12,34 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef LAYER_NORMALIZE_H
-#define LAYER_NORMALIZE_H
+#ifndef LAYER_INSTANCENORM_H
+#define LAYER_INSTANCENORM_H
 
 #include "layer.h"
 
 namespace ncnn {
 
-class Normalize : public Layer
+class InstanceNorm : public Layer
 {
 public:
-    Normalize();
+    InstanceNorm();
 
     virtual int load_param(const ParamDict& pd);
 
     virtual int load_model(const ModelBin& mb);
 
-    virtual int forward(const Mat& bottom_blob, Mat& top_blob) const;
+    virtual int forward_inplace(Mat& bottom_top_blob) const;
 
 public:
     // param
-    int across_spatial;
-    int across_channel;
-    int channel_shared;
+    int channels;
     float eps;
-    int scale_data_size;
 
-    Mat scale_data;
+    // model
+    Mat gamma_data;
+    Mat beta_data;
 };
 
 } // namespace ncnn
 
-#endif // LAYER_NORMALIZE_H
+#endif // LAYER_INSTANCENORM_H
