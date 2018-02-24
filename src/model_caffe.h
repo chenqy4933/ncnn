@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include "mat.h"
 #include "platform.h"
+#include "caffe.pb.h"
 
 struct _MTString {
 	/* never reference these directly! */

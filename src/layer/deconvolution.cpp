@@ -75,9 +75,13 @@ int Deconvolution::forward(const Mat& bottom_blob, Mat& top_blob) const
     int outh = (h - 1) * stride_h + kernel_extent_h;
 
     Mat top_blob_bordered = top_blob;
-    top_blob_bordered.create(outw, outh, num_output);
-    if (top_blob_bordered.empty())
-        return -100;
+    if(no_exchange_top_blob && !top_blob_bordered.empty()){
+        ;
+    }else{
+        top_blob_bordered.create(outw, outh, num_output);
+        if (top_blob_bordered.empty())
+            return -100;
+    }
 
     const int maxk = kernel_w * kernel_h;
 

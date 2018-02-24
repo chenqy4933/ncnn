@@ -96,7 +96,7 @@ int DeconvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) c
             weights[1] = bias_data_g;
 
             op->load_model(weights);
-
+            op->set_noexchange(true);
             // forward
             op->forward(bottom_blob_g, top_blob_bordered_g);
 
@@ -146,7 +146,7 @@ int DeconvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) c
             weights[1] = bias_data_g;
 
             op->load_model(weights);
-
+            op->set_noexchange(true);
             // forward
             op->forward(bottom_blob_g, top_blob_bordered_g);
 

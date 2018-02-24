@@ -22,7 +22,7 @@
 #include "modelbin.h"
 #include "paramdict.h"
 #include "platform.h"
-#include "caffe.pb.h"
+//#include "caffe.pb.h"
 
 namespace ncnn {
 
@@ -41,8 +41,10 @@ public:
     // load layer specific weight data from model binary
     // return 0 if success
     virtual int load_model(const ModelBin& mb);
+    
+    virtual int set_noexchange(bool flag);
 
-    virtual int load_model(const caffe::LayerParameter& param);
+    //virtual int load_model(const caffe::LayerParameter& param);
 
 public:
     // one input and one output blob
@@ -50,6 +52,8 @@ public:
 
     // support inplace inference
     bool support_inplace;
+    
+    bool no_exchange_top_blob = 0;
 
 public:
     // implement inference
