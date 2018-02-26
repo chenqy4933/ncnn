@@ -362,7 +362,7 @@ int Net::load_model(FILE* fp)
     // load file
     int ret = 0;
 
-    ModelBin mb(fp);
+    ModelBinFromStdio mb(fp);
     for (size_t i=0; i<layers.size(); i++)
     {
         Layer* layer = layers[i];
@@ -726,7 +726,7 @@ int Net::load_model(const unsigned char* _mem)
     }
 
     const unsigned char* mem = _mem;
-    ModelBin mb(mem);
+    ModelBinFromMemory mb(mem);
     for (size_t i=0; i<layers.size(); i++)
     {
         Layer* layer = layers[i];
@@ -860,9 +860,9 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             Mat& bottom_top_blob = bottom_blob;
 #if NCNN_BENCHMARK
-            struct timeval start = get_current_time();
+            double start = get_current_time();
             int ret = layer->forward_inplace(bottom_top_blob);
-            struct timeval end = get_current_time();
+            double end = get_current_time();
             benchmark(layer, bottom_top_blob, bottom_top_blob, start, end);
 #else
             int ret = layer->forward_inplace(bottom_top_blob);
@@ -877,9 +877,9 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             Mat top_blob;
 #if NCNN_BENCHMARK
-            struct timeval start = get_current_time();
+            double start = get_current_time();
             int ret = layer->forward(bottom_blob, top_blob);
-            struct timeval end = get_current_time();
+            double end = get_current_time();
             benchmark(layer, bottom_blob, top_blob, start, end);
 #else
             int ret = layer->forward(bottom_blob, top_blob);
@@ -927,9 +927,9 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             std::vector<Mat>& bottom_top_blobs = bottom_blobs;
 #if NCNN_BENCHMARK
-            struct timeval start = get_current_time();
+            double start = get_current_time();
             int ret = layer->forward_inplace(bottom_top_blobs);
-            struct timeval end = get_current_time();
+            double end = get_current_time();
             //benchmark(layer, start, end);
             benchmark(layer, bottom_top_blobs, bottom_top_blobs, start,  end);
 #else
@@ -951,11 +951,10 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             std::vector<Mat> top_blobs;
             top_blobs.resize(layer->tops.size());
 #if NCNN_BENCHMARK
-            struct timeval start = get_current_time();
+            double start = get_current_time();
             int ret = layer->forward(bottom_blobs, top_blobs);
-            struct timeval end = get_current_time();
-            //benchmark(layer, start, end);
-            benchmark(layer, bottom_blobs, top_blobs, start, end);
+            double end = get_current_time();
+            benchmark(layer, start, end);
 #else
             int ret = layer->forward(bottom_blobs, top_blobs);
 #endif // NCNN_BENCHMARK

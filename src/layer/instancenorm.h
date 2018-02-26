@@ -12,27 +12,34 @@
 // CONDITIONS OF ANY KIND, either express or implied. See the License for the
 // specific language governing permissions and limitations under the License.
 
-#ifndef NCNN_BENCHMARK_H
-#define NCNN_BENCHMARK_H
+#ifndef LAYER_INSTANCENORM_H
+#define LAYER_INSTANCENORM_H
 
-#include "platform.h"
-#include<vector>
-
-#if NCNN_BENCHMARK
-
-#include "mat.h"
 #include "layer.h"
 
 namespace ncnn {
 
-// get now timestamp in ms
-double get_current_time();
+class InstanceNorm : public Layer
+{
+public:
+    InstanceNorm();
 
-void benchmark(const Layer* layer, double start, double end);
-void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double start, double end);
-void benchmark(const Layer *layer, const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs, double start, double end);
-#endif // NCNN_BENCHMARK
+    virtual int load_param(const ParamDict& pd);
+
+    virtual int load_model(const ModelBin& mb);
+
+    virtual int forward_inplace(Mat& bottom_top_blob) const;
+
+public:
+    // param
+    int channels;
+    float eps;
+
+    // model
+    Mat gamma_data;
+    Mat beta_data;
+};
 
 } // namespace ncnn
 
-#endif // NCNN_BENCHMARK_H
+#endif // LAYER_INSTANCENORM_H
