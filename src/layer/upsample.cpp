@@ -92,6 +92,7 @@ int Upsample::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& to
 
     Mat& top_blob=top_blobs[0];
     top_blob.create(dst_w,dst_h,channels);
+    memset(top_blob.data,0,dst_w*dst_h*channels*sizeof(float)); //Upsample申请的内存一定要进行初始化！！！！！！
     if(top_blob.empty())
     {
         return -100;

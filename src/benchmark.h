@@ -16,6 +16,7 @@
 #define NCNN_BENCHMARK_H
 
 #include "platform.h"
+#include<vector>
 
 #if NCNN_BENCHMARK
 
@@ -38,6 +39,7 @@ double time_elapsed(struct timeval start, struct timeval end);
 
 void benchmark(const Layer* layer, struct timeval start, struct timeval end);
 void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, struct timeval start, struct timeval end);
+void benchmark(const Layer *layer, const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs, struct timeval start, struct timeval end);
 
 } // namespace ncnn
 

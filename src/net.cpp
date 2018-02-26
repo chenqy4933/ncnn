@@ -930,11 +930,12 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             struct timeval start = get_current_time();
             int ret = layer->forward_inplace(bottom_top_blobs);
             struct timeval end = get_current_time();
-            benchmark(layer, start, end);
+            //benchmark(layer, start, end);
+            benchmark(layer, bottom_top_blobs, bottom_top_blobs, start,  end);
 #else
             int ret = layer->forward_inplace(bottom_top_blobs);
 #endif // NCNN_BENCHMARK
-            if (ret != 0)
+            if (ret != 0) 
                 return ret;
 
             // store top blobs
@@ -953,7 +954,8 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             struct timeval start = get_current_time();
             int ret = layer->forward(bottom_blobs, top_blobs);
             struct timeval end = get_current_time();
-            benchmark(layer, start, end);
+            //benchmark(layer, start, end);
+            benchmark(layer, bottom_blobs, top_blobs, start, end);
 #else
             int ret = layer->forward(bottom_blobs, top_blobs);
 #endif // NCNN_BENCHMARK
