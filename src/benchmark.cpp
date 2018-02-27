@@ -87,25 +87,25 @@ void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double
         );
     }
     fprintf(stderr, "\n");
-    const char * name=layer->name.c_str();
-    FILE * pfile=fopen(name,"w+");
-    int c = top_blob.c;
-    int h = top_blob.h;
-    int w = top_blob.w;
-    float *data = (float *)top_blob.data;
-    for (int i = 0; i < c; i++)
-    {
-        for(int j=0;j<h;j++)
-        {
-            for(int k=0;k<w;k++)
-            {
-                fprintf(pfile, "%60.55f ", *data);
-                data++;
-            }
-            fprintf(pfile, "\n");
-        }
-        fprintf(pfile, "\n");
-    }
+    // const char * name=layer->name.c_str();
+    // FILE * pfile=fopen(name,"w+");
+    // int c = top_blob.c;
+    // int h = top_blob.h;
+    // int w = top_blob.w;
+    // float *data = (float *)top_blob.data;
+    // for (int i = 0; i < c; i++)
+    // {
+    //     for(int j=0;j<h;j++)
+    //     {
+    //         for(int k=0;k<w;k++)
+    //         {
+    //             fprintf(pfile, "%60.55f ", *data);
+    //             data++;
+    //         }
+    //         fprintf(pfile, "\n");
+    //     }
+    //     fprintf(pfile, "\n");
+    // }
 }
 
 void benchmark(const Layer *layer, const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs, double start, double end)
@@ -114,31 +114,31 @@ void benchmark(const Layer *layer, const std::vector<Mat> &bottom_blobs, std::ve
     fprintf(stderr, "    |");
     fprintf(stderr, "\n");
 
-    const char *name = layer->name.c_str();
-    FILE *pfile = fopen(name, "w+");
+    // const char *name = layer->name.c_str();
+    // FILE *pfile = fopen(name, "w+");
 
-    int size_blob = top_blobs.size();
-    for (int index = 0; index < size_blob; index++)
-    {
-        float *data = (float *)top_blobs[index].data;
-        int c = top_blobs[index].c;
-        int h = top_blobs[index].h;
-        int w = top_blobs[index].w;
-        for (int i = 0; i < c; i++)
-        {
-            for (int j = 0; j < h; j++)
-            {
-                for (int k = 0; k < w; k++)
-                {
-                    fprintf(pfile, "%60.55f ", *data);
-                    data++;
-                }
-                fprintf(pfile, "\n");
-            }
-            fprintf(pfile, "\n");
-        }
-    }
-    fclose(pfile);
+    // int size_blob = top_blobs.size();
+    // for (int index = 0; index < size_blob; index++)
+    // {
+    //     float *data = (float *)top_blobs[index].data;
+    //     int c = top_blobs[index].c;
+    //     int h = top_blobs[index].h;
+    //     int w = top_blobs[index].w;
+    //     for (int i = 0; i < c; i++)
+    //     {
+    //         for (int j = 0; j < h; j++)
+    //         {
+    //             for (int k = 0; k < w; k++)
+    //             {
+    //                 fprintf(pfile, "%60.55f ", *data);
+    //                 data++;
+    //             }
+    //             fprintf(pfile, "\n");
+    //         }
+    //         fprintf(pfile, "\n");
+    //     }
+    // }
+    // fclose(pfile);
 }
 
 #endif // NCNN_BENCHMARK

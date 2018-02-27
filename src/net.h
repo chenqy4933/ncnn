@@ -89,11 +89,15 @@ public:
     int find_layer_index_by_name(const char* name) const;
     int custom_layer_to_index(const char* type);
     Layer* create_custom_layer(const char* type);
+    int forward_layer_FromeTo(const char *start_layer_name, const char *end_layer_name, std::vector<Mat> &blob_mats) const;
 #endif // NCNN_STRING
     Layer* create_custom_layer(int index);
+    //递归来实现整个网络的计算
     int forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightmode) const;
+    //使用循环来进行计算
+    int forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::vector<Mat> &blob_mats,bool lightmode) const;
 
-//protected:
+        //protected:
     std::vector<Blob> blobs;
     std::vector<Layer*> layers;
 
@@ -133,13 +137,16 @@ public:
     // get result by blob index
     // return 0 if success
     int extract(int blob_index, Mat& feat);
+    int clear_data(void);
+    int forward_FromeTo(int start_layer_index, int end_layer_index, std::vector<Mat> &feat);//start_layer中的top_blob必须有数据
 
-protected:
+  protected:
     friend Extractor Net::create_extractor() const;
     Extractor(const Net* net, int blob_count);
+    
 
-private:
-    const Net* net;
+private : 
+    const Net *net;
     std::vector<Mat> blob_mats;
     bool lightmode;
     int num_threads;

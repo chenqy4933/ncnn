@@ -18,12 +18,12 @@
 #include "platform.h"
 #include<vector>
 
-#if NCNN_BENCHMARK
-
 #include "mat.h"
 #include "layer.h"
 
 namespace ncnn {
+
+#if NCNN_BENCHMARK
 
 // get now timestamp in ms
 double get_current_time();
@@ -31,6 +31,7 @@ double get_current_time();
 void benchmark(const Layer* layer, double start, double end);
 void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double start, double end);
 void benchmark(const Layer *layer, const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs, double start, double end);
+
 #endif // NCNN_BENCHMARK
 
 } // namespace ncnn

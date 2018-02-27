@@ -978,6 +978,145 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
     return 0;
 }
 
+int Net::forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::vector<Mat> &blob_mats,bool lightmode) const
+{
+    for(int layer_index=start_layer_index+1;layer_index<=end_layer_index;layer_index++)//start_layer为输入层，不需要计算
+    {
+        const Layer* layer=layers[layer_index];
+        if(layer->one_blob_only)     //单个blob的layer的计算
+        {
+            int bottom_blob_index = layer->bottoms[0];
+            int top_blob_index = layer->tops[0];
+
+            if (blob_mats[bottom_blob_index].dims == 0)
+            {
+                fprintf(stderr,"the bottoom blob of layer %d is empty\n",layer_index);
+            }
+
+            Mat bottom_blob = blob_mats[bottom_blob_index];
+
+            if (lightmode)
+            {
+                // delete after taken in light mode
+                blob_mats[bottom_blob_index].release();
+                // deep copy for inplace forward if data is shared
+                if (layer->support_inplace && *bottom_blob.refcount != 1)
+                {
+                    bottom_blob = bottom_blob.clone();
+                }
+            }
+
+            if (lightmode && layer->support_inplace) //如果layer可以为inplace模式
+            { 
+               // Mat &bottom_top_blob = bottom_blob;
+#if NCNN_BENCHMARK
+                double start = get_current_time();
+                int ret = layer->forward_inplace(bottom_blob);
+                double end = get_current_time();
+                benchmark(layer, bottom_blob, bottom_blob, start, end);
+#else
+                int ret = layer->forward_inplace(bottom_blob);
+#endif // NCNN_BENCHMARK
+                if (ret != 0)
+                    return ret;
+
+                // store top blob
+                blob_mats[top_blob_index] = bottom_blob;
+            }
+            else
+            {
+                Mat top_blob ;//= blob_mats[top_blob_index];
+#if NCNN_BENCHMARK
+                double start = get_current_time();
+                int ret = layer->forward(bottom_blob, top_blob);
+                double end = get_current_time();
+                benchmark(layer, bottom_blob, top_blob, start, end);
+#else
+                int ret = layer->forward(bottom_blob, top_blob);
+#endif // NCNN_BENCHMARK
+                if (ret != 0)
+                    return ret;
+                // store top blob
+                blob_mats[top_blob_index] = top_blob;
+            }
+        }
+        else
+        {
+            std::vector<Mat> bottom_blobs;
+            bottom_blobs.resize(layer->bottoms.size());
+            for (size_t i = 0; i < layer->bottoms.size(); i++)
+            {
+                int bottom_blob_index = layer->bottoms[i];
+
+                if (blob_mats[bottom_blob_index].dims == 0)
+                {
+                    fprintf(stderr,"the bottoom blob of layer %d is empty\n",layer_index);
+                }
+
+                bottom_blobs[i] = blob_mats[bottom_blob_index];
+
+                if (lightmode)
+                {
+                    // delete after taken in light mode
+                    blob_mats[bottom_blob_index].release();
+                    // deep copy for inplace forward if data is shared
+                    if (layer->support_inplace && *bottom_blobs[i].refcount != 1)
+                    {
+                        bottom_blobs[i] = bottom_blobs[i].clone();
+                    }
+                }
+            }
+
+            // forward
+            if (lightmode && layer->support_inplace)
+            {
+                std::vector<Mat> &bottom_top_blobs = bottom_blobs;
+#if NCNN_BENCHMARK
+                double start = get_current_time();
+                int ret = layer->forward_inplace(bottom_top_blobs);
+                double end = get_current_time();
+                //benchmark(layer, start, end);
+                benchmark(layer, bottom_top_blobs, bottom_top_blobs, start, end);
+#else
+                int ret = layer->forward_inplace(bottom_top_blobs);
+#endif // NCNN_BENCHMARK
+                if (ret != 0)
+                    return ret;
+
+                for (size_t i = 0; i < layer->tops.size(); i++)
+                {
+                    int top_blob_index = layer->tops[i];
+
+                    blob_mats[top_blob_index] = bottom_top_blobs[i];
+                }
+            }
+            else
+            {
+                std::vector<Mat> top_blobs;
+                top_blobs.resize(layer->tops.size());
+#if NCNN_BENCHMARK
+                double start = get_current_time();
+                int ret = layer->forward(bottom_blobs, top_blobs);
+                double end = get_current_time();
+                benchmark(layer, start, end);
+#else
+                int ret = layer->forward(bottom_blobs, top_blobs);
+#endif // NCNN_BENCHMARK
+                if (ret != 0)
+                    return ret;
+
+                for (size_t i = 0; i < layer->tops.size(); i++)
+                {
+                    int top_blob_index = layer->tops[i];
+
+                    blob_mats[top_blob_index] = top_blobs[i];
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 Extractor::Extractor(const Net* _net, int blob_count) : net(_net)
 {
     blob_mats.resize(blob_count);
@@ -1040,6 +1179,68 @@ int Extractor::extract(int blob_index, Mat& feat)
     }
 
     feat = blob_mats[blob_index];
+
+    return ret;
+}
+
+int Extractor::clear_data(void)
+{
+    if(lightmode)
+    {
+        int output_layer_index=net->layers.size()-1;
+        Layer * output_layer=net->layers[output_layer_index];
+        int num_output_blobs = output_layer->tops.size();
+        for(int i=0;i<num_output_blobs;i++)
+        {
+            int blob_index=output_layer->tops[i];
+            blob_mats[blob_index].release();
+        }
+
+    }
+    else
+    {
+        int num_blobs=blob_mats.size();
+        for(int i=0;i<num_blobs;i++)
+        {
+            blob_mats[i].release();
+        }
+    }
+    return 0;
+}
+
+
+int Extractor::forward_FromeTo(int start_layer_index, int end_layer_index, std::vector<Mat>& feat)
+{
+    if (start_layer_index < 0 || start_layer_index >= (int)net->layers.size() ||
+        end_layer_index < 0 || end_layer_index >= (int)net->layers.size())   //检查layer在合理的范围
+    {
+        return -1;
+    }
+    int in_size = net->layers[start_layer_index]->tops.size();
+    for(int i=0;i<in_size;i++)         //判断输入数据是否已经准备好了
+    {
+        int input_blob_index = net->layers[start_layer_index]->tops[i];
+        if (blob_mats[input_blob_index].dims==0)
+        {
+            return -1;
+        }
+    }
+
+    int out_size = net->layers[end_layer_index]->tops.size();
+    if(feat.size()!=out_size)
+    {
+        return -1;
+    }
+
+    int ret = 0;
+
+    ret = net->forward_layer_FromeTo(start_layer_index, end_layer_index, blob_mats, lightmode);
+
+    for(int i=0;i<out_size;i++)
+    {
+        int output_blob_index=net->layers[end_layer_index]->tops[i];
+        feat[i] = blob_mats[output_blob_index];
+    }
 
     return ret;
 }
