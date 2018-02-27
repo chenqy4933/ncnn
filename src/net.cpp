@@ -34,12 +34,16 @@ namespace ncnn {
 
 Net::Net()
 {
+#if NCNN_DEBUG_FILE
     df = new Debug_file();
+#endif
 }
 
 Net::~Net()
 {
+#if NCNN_DEBUG_FILE
     delete df;
+#endif
     clear();
 }
 
@@ -856,16 +860,13 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             Mat top_blob;
 #if NCNN_BENCHMARK
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
-            //printf("input: layer:%d, size:%d\n", i, size);
+#if NCNN_DEBUG_FILE
             df->write_input(bottom_blob,layer_index);
 #endif 
             struct timeval start = get_current_time();
             int ret = layer->forward(bottom_blob, top_blob);
             struct timeval end = get_current_time();
-#if CAFFE_OUTPUT_BLOB_BIN_FILE            
-            printf("output: layer:%d type:%-24s, name:%-24s, size:%d\n"
-                     ,layer_index,  layer->type.c_str(), layer->name.c_str(), 1);
+#if NCNN_DEBUG_FILE            
             df->write_output(top_blob,layer_index);
 #endif 
              
@@ -939,15 +940,13 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             std::vector<Mat> top_blobs;
             top_blobs.resize(layer->tops.size());
 #if NCNN_BENCHMARK
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
+#if NCNN_DEBUG_FILE
             df->write_inputs(bottom_blobs, layer_index);
 #endif
             struct timeval start = get_current_time();
             int ret = layer->forward(bottom_blobs, top_blobs);
             struct timeval end = get_current_time();
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
-            printf("output: layer:%d type:%-24s, name:%-24s\n"
-                     ,layer_index, layer->type.c_str(), layer->name.c_str());
+#if NCNN_DEBUG_FILE
             df->write_outputs(top_blobs, layer_index);
 #endif
             benchmark(layer, bottom_blobs[0], top_blobs[0], start, end, layer_index);
@@ -974,7 +973,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
     return 0;
 }
 
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
+#if NCNN_DEBUG_FILE
 int Net::set_df() const
 {
     if(!df) return -1;
@@ -1032,7 +1031,7 @@ int Extractor::extract(int blob_index, Mat& feat)
             omp_set_num_threads(num_threads);
         }
 #endif
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
+#if NCNN_DEBUG_FILE
         net->set_df();
 #endif
         ret = net->forward_layer(layer_index, blob_mats, lightmode);
@@ -1086,7 +1085,7 @@ int Extractor::extract(const char* blob_name, Mat& feat)
             omp_set_num_threads(num_threads);
         }
 #endif
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
+#if NCNN_DEBUG_FILE
         net->set_df();
 #endif
         ret = net->forward_layer(layer_index, blob_mats, lightmode);

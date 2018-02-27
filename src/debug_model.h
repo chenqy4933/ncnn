@@ -1,12 +1,11 @@
 
-#define CAFFE_OUTPUT_BLOB_BIN_FILE 1
-
 #ifndef NCNN_DEBUG_MODEL_H
 #define NCNN_DEBUG_MODEL_H
 
+#include "platform.h"
 
 
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
+#if NCNN_DEBUG_FILE
 
 #include <stdio.h>
 #include <string.h>
@@ -77,5 +76,5 @@ protected:
 
 } // namespace ncnn
 
-#endif // CAFFE_OUTPUT_BLOB_BIN_FILE
+#endif // NCNN_DEBUG_FILE
 #endif // NCNN_DEBUG_MODEL_H

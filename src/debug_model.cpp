@@ -2,7 +2,7 @@
 
 #include "debug_model.h"
 
-#if CAFFE_OUTPUT_BLOB_BIN_FILE
+#if NCNN_DEBUG_FILE
 #include<unistd.h>
 #include <sys/stat.h>
 #include <pthread.h>
