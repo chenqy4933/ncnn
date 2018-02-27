@@ -21,6 +21,7 @@
 #include "layer.h"
 #include "mat.h"
 #include "platform.h"
+#include "debug_model.h"
 
 namespace ncnn {
 
@@ -91,6 +92,9 @@ protected:
 #endif // NCNN_STRING
     Layer* create_custom_layer(int index);
     int forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightmode) const;
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+	int set_df() const;
+#endif
 
 protected:
     std::vector<Blob> blobs;
@@ -100,6 +104,9 @@ protected:
 	std::vector<int> output_blobs;
 
     std::vector<layer_registry_entry> custom_layer_registry;
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+	Debug_file *df;
+#endif
 };
 
 class Extractor

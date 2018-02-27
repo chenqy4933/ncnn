@@ -34,10 +34,12 @@ namespace ncnn {
 
 Net::Net()
 {
+    df = new Debug_file();
 }
 
 Net::~Net()
 {
+    delete df;
     clear();
 }
 
@@ -401,12 +403,17 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
     unsigned char* proto_mem;
     unsigned char* model_mem;
     int ret = 0 ;
+    struct timeval start = get_current_time();
     ret = Model_Caffe::caffe2ncnn(&proto_mem,&model_mem,modelpath,protopath);
     if (ret != 0)
     {
         fprintf(stderr, "Model_Caffe::caffe2ncnn failed, %s. %s.\n",protopath,modelpath);
         return -1;
     }
+    struct timeval end = get_current_time();
+    double use_time = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+    fprintf(stderr, "  -Net::load_caffe_model use time: %8.2lfms\n", use_time);
+    
     ret = load_caffe_param(proto_mem);
     if (ret != 0)
     {
@@ -801,7 +808,6 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
     const Layer* layer = layers[layer_index];
 
 //     fprintf(stderr, "forward_layer %d %s\n", layer_index, layer->name.c_str());
-
     if (layer->one_blob_only)
     {
         // load bottom blob
@@ -836,7 +842,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             struct timeval start = get_current_time();
             int ret = layer->forward_inplace(bottom_top_blob);
             struct timeval end = get_current_time();
-            benchmark(layer, bottom_top_blob, bottom_top_blob, start, end);
+            benchmark(layer, bottom_top_blob, bottom_top_blob, start, end, layer_index);
 #else
             int ret = layer->forward_inplace(bottom_top_blob);
 #endif // NCNN_BENCHMARK
@@ -850,10 +856,20 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             Mat top_blob;
 #if NCNN_BENCHMARK
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+            //printf("input: layer:%d, size:%d\n", i, size);
+            df->write_input(bottom_blob,layer_index);
+#endif 
             struct timeval start = get_current_time();
             int ret = layer->forward(bottom_blob, top_blob);
             struct timeval end = get_current_time();
-            benchmark(layer, bottom_blob, top_blob, start, end);
+#if CAFFE_OUTPUT_BLOB_BIN_FILE            
+            printf("output: layer:%d type:%-24s, name:%-24s, size:%d\n"
+                     ,layer_index,  layer->type.c_str(), layer->name.c_str(), 1);
+            df->write_output(top_blob,layer_index);
+#endif 
+             
+            benchmark(layer, bottom_blob, top_blob, start, end, layer_index);
 #else
             int ret = layer->forward(bottom_blob, top_blob);
 #endif // NCNN_BENCHMARK
@@ -903,7 +919,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             struct timeval start = get_current_time();
             int ret = layer->forward_inplace(bottom_top_blobs);
             struct timeval end = get_current_time();
-            benchmark(layer, start, end);
+            benchmark(layer, start, end, layer_index);
 #else
             int ret = layer->forward_inplace(bottom_top_blobs);
 #endif // NCNN_BENCHMARK
@@ -923,10 +939,18 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             std::vector<Mat> top_blobs;
             top_blobs.resize(layer->tops.size());
 #if NCNN_BENCHMARK
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+            df->write_inputs(bottom_blobs, layer_index);
+#endif
             struct timeval start = get_current_time();
             int ret = layer->forward(bottom_blobs, top_blobs);
             struct timeval end = get_current_time();
-            benchmark(layer, start, end);
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+            printf("output: layer:%d type:%-24s, name:%-24s\n"
+                     ,layer_index, layer->type.c_str(), layer->name.c_str());
+            df->write_outputs(top_blobs, layer_index);
+#endif
+            benchmark(layer, bottom_blobs[0], top_blobs[0], start, end, layer_index);
 #else
             int ret = layer->forward(bottom_blobs, top_blobs);
 #endif // NCNN_BENCHMARK
@@ -949,6 +973,15 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
 
     return 0;
 }
+
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+int Net::set_df() const
+{
+    if(!df) return -1;
+    df->df_mkdir();
+    return 0;
+}
+#endif
 
 Extractor::Extractor(const Net* _net, int blob_count) : net(_net)
 {
@@ -999,7 +1032,9 @@ int Extractor::extract(int blob_index, Mat& feat)
             omp_set_num_threads(num_threads);
         }
 #endif
-
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+        net->set_df();
+#endif
         ret = net->forward_layer(layer_index, blob_mats, lightmode);
 
 #ifdef _OPENMP
@@ -1051,7 +1086,9 @@ int Extractor::extract(const char* blob_name, Mat& feat)
             omp_set_num_threads(num_threads);
         }
 #endif
-
+#if CAFFE_OUTPUT_BLOB_BIN_FILE
+        net->set_df();
+#endif
         ret = net->forward_layer(layer_index, blob_mats, lightmode);
 
 #ifdef _OPENMP

@@ -71,17 +71,17 @@ double time_elapsed(struct timeval start, struct timeval end)
     return (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
 }
 
-void benchmark(const ncnn::Layer* layer, struct timeval start, struct timeval end)
+void benchmark(const ncnn::Layer* layer, struct timeval start, struct timeval end,int layer_index)
 {
-    fprintf(stderr, "%-24s %-24s %8.2lfms", layer->type.c_str(), layer->name.c_str(), time_elapsed(start, end));
+    fprintf(stderr, "%d %-24s %-24s %8.2lfms", layer_index, layer->type.c_str(), layer->name.c_str(), time_elapsed(start, end));
     fprintf(stderr, "    |");
     fprintf(stderr, "\n");
 }
 
-void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, struct timeval start, struct timeval end)
+void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, struct timeval start, struct timeval end,int layer_index)
 {
-    fprintf(stderr, "%-24s %-24s %8.2lfms", layer->type.c_str(), layer->name.c_str(), time_elapsed(start, end));
-    fprintf(stderr, "    |    feature_map: %4d x %-4d    inch: %4d    outch: %4d", bottom_blob.w, bottom_blob.h, bottom_blob.c, top_blob.c);
+    fprintf(stderr, "%d %-24s %-24s %8.2lfms", layer_index, layer->type.c_str(), layer->name.c_str(), time_elapsed(start, end));
+    fprintf(stderr, "    |  feature_map: %4d x %-4d  inch: %4d  outch: %4d x %-4d %4d", bottom_blob.w, bottom_blob.h, bottom_blob.c, top_blob.w,top_blob.h,top_blob.c);
     if (layer->type == "Convolution")
     {
         fprintf(stderr, "     kernel: %1d x %1d     stride: %1d x %1d",

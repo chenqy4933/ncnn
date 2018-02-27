@@ -36,8 +36,8 @@ struct timeval get_current_time();
 // get the time elapsed in ms
 double time_elapsed(struct timeval start, struct timeval end);
 
-void benchmark(const Layer* layer, struct timeval start, struct timeval end);
-void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, struct timeval start, struct timeval end);
+void benchmark(const Layer* layer, struct timeval start, struct timeval end, int layer_index = 0);
+void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, struct timeval start, struct timeval end, int layer_index = 0);
 
 } // namespace ncnn
 
