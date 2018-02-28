@@ -32,6 +32,7 @@ int ReLU_arm::forward_inplace(Mat& bottom_top_blob) const
 #if 1 // 同步caffemobile的relu版本, 实现方式能获得更高性能
     int align_size = 16;
     int nn = size & -align_size;
+	#pragma omp parallel for
     for (int q=0; q<channels; q++)
     {
         float* pBottom_data = (float*)bottom_top_blob.channel(q);
