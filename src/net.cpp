@@ -416,7 +416,7 @@ int Net::load_caffe_model(const char* protopath,const char* modelpath)
     ret = load_caffe_param(proto_mem);
     if (ret != 0)
     {
-        fprintf(stderr, "Model_Caffe::load_param failed, %s. %s.\n",protopath,modelpath);
+        fprintf(stderr, "Model_Caffe::load_caffe_param failed, %s. %s.\n",protopath,modelpath);
         return -1;
     }
     #if 0
@@ -453,13 +453,13 @@ int Net::load_caffe_model(const char* mergemodel_mem, int net_size)
     ret = load_caffe_param(proto_mem);
     if (ret != 0)
     {
-        fprintf(stderr, "Model_Caffe::load_param failed, %s\n",net_size);
+        fprintf(stderr, "Model_Caffe::load_caffe_param failed, %d\n",net_size);
         return -1;
     }
     ret = load_model(model_mem);
     if (ret != 0)
     {
-        fprintf(stderr, "Model_Caffe::load_model failed, %d. %s.\n",net_size);
+        fprintf(stderr, "Model_Caffe::load_model failed, %d.\n",net_size);
         return -1;
     }
     return ret;
