@@ -17,12 +17,26 @@
 #include <vector>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <sys/time.h>
 
 #include "net.h"
+
+inline struct timeval get_current_time()
+{
+    struct ::timeval tv;
+    gettimeofday(&tv, NULL);
+    
+    struct timeval tp = { tv.tv_sec, tv.tv_usec };
+    
+    return tp;
+}
+
+
 
 static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores,int flag)
 {
     ncnn::Net squeezenet;
+    struct timeval start = get_current_time();
     if(0 == flag){
         squeezenet.load_param("../../squeezenet_v1.1.param");
         squeezenet.load_model("../../squeezenet_v1.1.bin");
@@ -31,7 +45,11 @@ static int detect_squeezenet(const cv::Mat& bgr, std::vector<float>& cls_scores,
     } else{
         squeezenet.load_caffe_model("../../squeezenet_v1.1.prototxt","../../squeezenet_v1.1.caffemodel");
     }
-
+    struct timeval end = get_current_time();
+    
+    double use_time = (end.tv_sec - start.tv_sec) * 1000.0 + (end.tv_usec - start.tv_usec) / 1000.0;
+    fprintf(stderr, "use time: %8.2lfms\n", use_time);
+    
     ncnn::Mat in = ncnn::Mat::from_pixels_resize(bgr.data, ncnn::Mat::PIXEL_BGR, bgr.cols, bgr.rows, 227, 227);
 
     const float mean_vals[3] = {104.f, 117.f, 123.f};
