@@ -942,7 +942,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             int ret = layer->forward_inplace(bottom_top_blobs);
             double end = get_current_time();
             //benchmark(layer, start, end);
-            benchmark(layer, bottom_top_blobs, bottom_top_blobs, start, end, layer_index);
+            benchmark(layer, bottom_top_blobs[0], bottom_top_blobs[0], start, end, layer_index);
 #else
             int ret = layer->forward_inplace(bottom_top_blobs);
 #endif // NCNN_BENCHMARK
