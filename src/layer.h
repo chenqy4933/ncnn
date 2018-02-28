@@ -53,7 +53,7 @@ public:
     // support inplace inference
     bool support_inplace;
     
-    bool no_exchange_top_blob = 0;
+    bool no_exchange_top_blob;
 
 public:
     // implement inference

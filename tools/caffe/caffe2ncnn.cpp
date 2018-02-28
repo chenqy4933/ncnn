@@ -340,21 +340,21 @@ int main(int argc, char** argv)
             blob_name.c_str(),blob_name.c_str());
         if (proto.input_dim_size() == 4)
         {
-            fprintf(pp, " 0=%ld", proto.input_dim(3));
-            fprintf(pp, " 1=%ld", proto.input_dim(2));
-            fprintf(pp, " 2=%ld", proto.input_dim(1));
+            fprintf(pp, " 0=%ld", (long)proto.input_dim(3));
+            fprintf(pp, " 1=%ld", (long)proto.input_dim(2));
+            fprintf(pp, " 2=%ld", (long)proto.input_dim(1));
         }
         else if (proto.input_dim_size() == 3)
         {
-            fprintf(pp, " 0=%ld", proto.input_dim(2));
-            fprintf(pp, " 1=%ld", proto.input_dim(1));
-            fprintf(pp, " 2=%ld", -233);        
+            fprintf(pp, " 0=%ld", (long)proto.input_dim(2));
+            fprintf(pp, " 1=%ld", (long)proto.input_dim(1));
+            fprintf(pp, " 2=%ld", (long)-233);        
         }
         else if (proto.input_dim_size() == 2)
         {
-            fprintf(pp, " 0=%ld", proto.input_dim(1));
-            fprintf(pp, " 1=%ld", -233);
-            fprintf(pp, " 2=%ld", -233);
+            fprintf(pp, " 0=%ld", (long)proto.input_dim(1));
+            fprintf(pp, " 1=%ld", (long)-233);
+            fprintf(pp, " 2=%ld", (long)-233);
         }
         fprintf(pp, "\n");
     }
@@ -782,19 +782,19 @@ int main(int argc, char** argv)
             const caffe::BlobShape& bs = input_param.shape(0);
             if (bs.dim_size() == 4)
             {
-                fprintf(pp, " 0=%ld", bs.dim(3));
-                fprintf(pp, " 1=%ld", bs.dim(2));
-                fprintf(pp, " 2=%ld", bs.dim(1));
+                fprintf(pp, " 0=%ld", (long)bs.dim(3));
+                fprintf(pp, " 1=%ld", (long)bs.dim(2));
+                fprintf(pp, " 2=%ld", (long)bs.dim(1));
             }
             else if (bs.dim_size() == 3)
             {
-                fprintf(pp, " 0=%ld", bs.dim(2));
-                fprintf(pp, " 1=%ld", bs.dim(1));
+                fprintf(pp, " 0=%ld", (long)bs.dim(2));
+                fprintf(pp, " 1=%ld", (long)bs.dim(1));
                 fprintf(pp, " 2=-233");
             }
             else if (bs.dim_size() == 2)
             {
-                fprintf(pp, " 0=%ld", bs.dim(1));
+                fprintf(pp, " 0=%ld", (long)bs.dim(1));
                 fprintf(pp, " 1=-233");
                 fprintf(pp, " 2=-233");
             }
@@ -1109,19 +1109,19 @@ int main(int argc, char** argv)
             const caffe::BlobShape& bs = reshape_param.shape();
             if (bs.dim_size() == 1)
             {
-                fprintf(pp, " 0=%ld 1=-233 2=-233", bs.dim(0));
+                fprintf(pp, " 0=%ld 1=-233 2=-233", (long)bs.dim(0));
             }
             else if (bs.dim_size() == 2)
             {
-                fprintf(pp, " 0=%ld 1=%ld 2=-233", bs.dim(1), bs.dim(0));
+                fprintf(pp, " 0=%ld 1=%ld 2=-233", (long)bs.dim(1), (long)bs.dim(0));
             }
             else if (bs.dim_size() == 3)
             {
-                fprintf(pp, " 0=%ld 1=%ld 2=%ld", bs.dim(2), bs.dim(1), bs.dim(0));
+                fprintf(pp, " 0=%ld 1=%ld 2=%ld", (long)bs.dim(2), (long)bs.dim(1), (long)bs.dim(0));
             }
             else // bs.dim_size() == 4
             {
-                fprintf(pp, " 0=%ld 1=%ld 2=%ld", bs.dim(3), bs.dim(2), bs.dim(1));
+                fprintf(pp, " 0=%ld 1=%ld 2=%ld", (long)bs.dim(3), (long)bs.dim(2), (long)bs.dim(1));
             }
             fprintf(pp, " 3=0");// permute
         }

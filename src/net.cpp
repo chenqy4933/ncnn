@@ -1255,7 +1255,7 @@ int Extractor::forward_FromeTo(int start_layer_index, int end_layer_index, std::
     }
 
     int out_size = net->layers[end_layer_index]->tops.size();
-    if(feat.size()!=out_size)
+    if(out_size != (int)feat.size() )
     {
         return -1;
     }

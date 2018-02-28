@@ -1503,7 +1503,7 @@ int main(int argc, char** argv)
         else if (n.op == "SliceChannel")
         {
             int num_outputs = n.attr("num_outputs");
-            int squeeze_axis = n.attr("squeeze_axis");// TODO
+            //int squeeze_axis = n.attr("squeeze_axis");// TODO
 
             fprintf(pp, " -23300=%d", num_outputs);
             for (int j=0; j<num_outputs; j++)

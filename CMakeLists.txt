@@ -37,6 +37,7 @@ endif()
 
 include(cmake/Dependencies.cmake)
 
+#-Wno-unused-variable
 add_definitions(-Wall -Wextra -Wno-unused-function)
 
 add_definitions(-fPIC)
