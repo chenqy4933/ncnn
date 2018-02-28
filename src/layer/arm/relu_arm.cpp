@@ -29,6 +29,56 @@ int ReLU_arm::forward_inplace(Mat& bottom_top_blob) const
     int channels = bottom_top_blob.c;
     int size = w * h;
 
+#if 1 // 同步caffemobile的relu版本, 实现方式能获得更高性能
+    int align_size = 16;
+    int nn = size & -align_size;
+    for (int q=0; q<channels; q++)
+    {
+        float* pBottom_data = (float*)bottom_top_blob.channel(q);
+        
+        float32x4_t zero_4 = vdupq_n_f32(0.0f);
+        float32x4_t slope_4 = vdupq_n_f32(slope);
+        int i;
+        //通用版本
+        for(i = 0; i < nn; i += align_size)
+        {
+            float32x4_t data1 = vld1q_f32(pBottom_data + 0);
+            float32x4_t data2 = vld1q_f32(pBottom_data + 4);
+            float32x4_t data3 = vld1q_f32(pBottom_data + 8);
+            float32x4_t data4 = vld1q_f32(pBottom_data + 12);
+            
+            float32x4_t data1_max = vmaxq_f32(data1, zero_4);
+            float32x4_t data2_max = vmaxq_f32(data2, zero_4);
+            float32x4_t data3_max = vmaxq_f32(data3, zero_4);
+            float32x4_t data4_max = vmaxq_f32(data4, zero_4);
+            
+            float32x4_t data1_min = vminq_f32(data1, zero_4);
+            float32x4_t data2_min = vminq_f32(data2, zero_4);
+            float32x4_t data3_min = vminq_f32(data3, zero_4);
+            float32x4_t data4_min = vminq_f32(data4, zero_4);
+            
+            float32x4_t result1 = vmlaq_f32(data1_max, slope_4, data1_min);
+            float32x4_t result2 = vmlaq_f32(data2_max, slope_4, data2_min);
+            float32x4_t result3 = vmlaq_f32(data3_max, slope_4, data3_min);
+            float32x4_t result4 = vmlaq_f32(data4_max, slope_4, data4_min);
+            
+            vst1q_f32(pBottom_data + 0, result1);
+            vst1q_f32(pBottom_data + 4, result2);
+            vst1q_f32(pBottom_data + 8, result3);
+            vst1q_f32(pBottom_data + 12, result4);
+            
+            pBottom_data += align_size;
+        }
+        for(; i < size; i++)
+        {
+            float tmp_data = *pBottom_data;
+            *pBottom_data = tmp_data > float(0) ? tmp_data : tmp_data *  slope;
+            pBottom_data++;
+        }
+    }
+    
+    return 0;
+#else
     if (slope == 0.f)
     {
         #pragma omp parallel for
@@ -147,6 +197,7 @@ int ReLU_arm::forward_inplace(Mat& bottom_top_blob) const
     }
 
     return 0;
+#endif
 }
 
 } // namespace ncnn
