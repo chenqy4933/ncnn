@@ -135,7 +135,7 @@ int ConvolutionDepthWise_x86::forward(const Mat& bottom_blob, Mat& top_blob) con
             weights[1] = bias_data_g;
 
             op->load_model(ModelBinFromMatArray(weights));
-
+            op->set_noexchange(true);
             // forward
             op->forward(bottom_blob_bordered_g, top_blob_g);
 
@@ -185,7 +185,7 @@ int ConvolutionDepthWise_x86::forward(const Mat& bottom_blob, Mat& top_blob) con
         weights[1] = bias_data_g;
 
         op->load_model(ModelBinFromMatArray(weights));
-
+        op->set_noexchange(true);
         // forward
         op->forward(bottom_blob_bordered_g, top_blob_g);
 

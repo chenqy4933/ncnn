@@ -22,6 +22,7 @@ Layer::Layer()
 {
     one_blob_only = false;
     support_inplace = false;
+    no_exchange_top_blob = false;
 }
 
 Layer::~Layer()
@@ -38,13 +39,12 @@ int Layer::load_model(const ModelBin& /*mb*/)
     return 0;
 }
 
-#if 0
-int Layer::load_model(const caffe::LayerParameter& /*param*/)
+int Layer::set_noexchange(bool flag)
 {
+    no_exchange_top_blob = flag;
     return 0;
 }
-#endif
-
+    
 int Layer::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top_blobs) const
 {
     if (!support_inplace)

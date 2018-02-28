@@ -66,17 +66,17 @@ double get_current_time()
 
 #if NCNN_BENCHMARK
 
-void benchmark(const Layer* layer, double start, double end)
+void benchmark(const Layer* layer, double start, double end, int layer_index)
 {
-    fprintf(stderr, "%-24s %-24s %8.2lfms", layer->type.c_str(), layer->name.c_str(), end - start);
+    fprintf(stderr, "%-3d %-24s %-16s %8.2lfms", layer_index, layer->type.c_str(), layer->name.c_str(), end - start);
     fprintf(stderr, "    |");
     fprintf(stderr, "\n");
 }
 
-void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double start, double end)
+void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double start, double end, int layer_index)
 {
-    fprintf(stderr, "%-24s %-24s %8.2lfms", layer->type.c_str(), layer->name.c_str(), end - start);
-    fprintf(stderr, "    |    feature_map: %4d x %-4d    inch: %4d    outch: %4d", bottom_blob.w, bottom_blob.h, bottom_blob.c, top_blob.c);
+    fprintf(stderr, "%-3d %-24s %-16s %8.2lfms", layer_index, layer->type.c_str(), layer->name.c_str(), end - start);
+    fprintf(stderr, "  |  inch: %4d x %-4d %4d.  outch: %4d x %-4d %4d.", bottom_blob.w, bottom_blob.h, bottom_blob.c, top_blob.w, top_blob.h, top_blob.c);
     if (layer->type == "Convolution")
     {
         fprintf(stderr, "     kernel: %1d x %1d     stride: %1d x %1d",

@@ -41,6 +41,8 @@ public:
     // load layer specific weight data from model binary
     // return 0 if success
     virtual int load_model(const ModelBin& mb);
+    
+    virtual int set_noexchange(bool flag);
 
     //virtual int load_model(const caffe::LayerParameter& param);
 
@@ -50,6 +52,8 @@ public:
 
     // support inplace inference
     bool support_inplace;
+    
+    bool no_exchange_top_blob = 0;
 
 public:
     // implement inference

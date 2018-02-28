@@ -83,6 +83,7 @@ int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
     }
     else if (pad_w == -233 && pad_h == -233)
     {
+        //TODO: untrustable branch
         int wpad = kernel_extent_w + (w - 1) / stride_w * stride_w - w;
         int hpad = kernel_extent_h + (h - 1) / stride_h * stride_h - h;
         if (wpad > 0 || hpad > 0)
@@ -99,9 +100,13 @@ int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
     int outw = (w - kernel_extent_w) / stride_w + 1;
     int outh = (h - kernel_extent_h) / stride_h + 1;
 
-    top_blob.create(outw, outh, num_output);
-    if (top_blob.empty())
-        return -100;
+    if(no_exchange_top_blob && !top_blob.empty()){
+        ;
+    }else{
+        top_blob.create(outw, outh, num_output);
+        if (top_blob.empty())
+            return -100;
+    }
 
     const int maxk = kernel_w * kernel_h;
 

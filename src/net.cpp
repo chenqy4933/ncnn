@@ -34,10 +34,16 @@ namespace ncnn {
 
 Net::Net()
 {
+#if NCNN_DEBUG_FILE
+    df = new Debug_file();
+#endif
 }
 
 Net::~Net()
 {
+#if NCNN_DEBUG_FILE
+    delete df;
+#endif
     clear();
 }
 
@@ -828,7 +834,6 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
     const Layer* layer = layers[layer_index];
 
 //     fprintf(stderr, "forward_layer %d %s\n", layer_index, layer->name.c_str());
-
     if (layer->one_blob_only)
     {
         // load bottom blob
@@ -863,7 +868,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             double start = get_current_time();
             int ret = layer->forward_inplace(bottom_top_blob);
             double end = get_current_time();
-            benchmark(layer, bottom_top_blob, bottom_top_blob, start, end);
+            benchmark(layer, bottom_top_blob, bottom_top_blob, start, end, layer_index);
 #else
             int ret = layer->forward_inplace(bottom_top_blob);
 #endif // NCNN_BENCHMARK
@@ -877,10 +882,16 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             Mat top_blob;
 #if NCNN_BENCHMARK
+#if NCNN_DEBUG_FILE
+            df->write_input(bottom_blob,layer_index);
+#endif 
             double start = get_current_time();
             int ret = layer->forward(bottom_blob, top_blob);
             double end = get_current_time();
-            benchmark(layer, bottom_blob, top_blob, start, end);
+            benchmark(layer, bottom_blob, top_blob, start, end, layer_index);
+#if NCNN_DEBUG_FILE            
+            df->write_output(top_blob,layer_index);
+#endif
 #else
             int ret = layer->forward(bottom_blob, top_blob);
 #endif // NCNN_BENCHMARK
@@ -931,7 +942,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             int ret = layer->forward_inplace(bottom_top_blobs);
             double end = get_current_time();
             //benchmark(layer, start, end);
-            benchmark(layer, bottom_top_blobs, bottom_top_blobs, start,  end);
+            benchmark(layer, bottom_top_blobs, bottom_top_blobs, start, end, layer_index);
 #else
             int ret = layer->forward_inplace(bottom_top_blobs);
 #endif // NCNN_BENCHMARK
@@ -951,10 +962,16 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
             std::vector<Mat> top_blobs;
             top_blobs.resize(layer->tops.size());
 #if NCNN_BENCHMARK
+#if NCNN_DEBUG_FILE
+            df->write_inputs(bottom_blobs, layer_index);
+#endif
             double start = get_current_time();
             int ret = layer->forward(bottom_blobs, top_blobs);
             double end = get_current_time();
-            benchmark(layer, start, end);
+            benchmark(layer, bottom_blobs[0], top_blobs[0], start, end, layer_index);
+#if NCNN_DEBUG_FILE
+            df->write_outputs(top_blobs, layer_index);
+#endif
 #else
             int ret = layer->forward(bottom_blobs, top_blobs);
 #endif // NCNN_BENCHMARK
@@ -1117,6 +1134,15 @@ int Net::forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::
     return 0;
 }
 
+#if NCNN_DEBUG_FILE
+int Net::set_df() const
+{
+    if(!df) return -1;
+    df->df_mkdir();
+    return 0;
+}
+#endif
+
 Extractor::Extractor(const Net* _net, int blob_count) : net(_net)
 {
     blob_mats.resize(blob_count);
@@ -1166,7 +1192,9 @@ int Extractor::extract(int blob_index, Mat& feat)
             omp_set_num_threads(num_threads);
         }
 #endif
-
+#if NCNN_DEBUG_FILE
+        net->set_df();
+#endif
         ret = net->forward_layer(layer_index, blob_mats, lightmode);
 
 #ifdef _OPENMP
@@ -1280,7 +1308,9 @@ int Extractor::extract(const char* blob_name, Mat& feat)
             omp_set_num_threads(num_threads);
         }
 #endif
-
+#if NCNN_DEBUG_FILE
+        net->set_df();
+#endif
         ret = net->forward_layer(layer_index, blob_mats, lightmode);
 
 #ifdef _OPENMP

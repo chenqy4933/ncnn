@@ -28,8 +28,8 @@ namespace ncnn {
 // get now timestamp in ms
 double get_current_time();
 
-void benchmark(const Layer* layer, double start, double end);
-void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double start, double end);
+void benchmark(const Layer* layer, double start, double end, int layer_index = 0);
+void benchmark(const Layer* layer, const Mat& bottom_blob, Mat& top_blob, double start, double end, int layer_index = 0);
 void benchmark(const Layer *layer, const std::vector<Mat> &bottom_blobs, std::vector<Mat> &top_blobs, double start, double end);
 
 #endif // NCNN_BENCHMARK

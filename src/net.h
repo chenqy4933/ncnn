@@ -21,6 +21,7 @@
 #include "layer.h"
 #include "mat.h"
 #include "platform.h"
+#include "debug_model.h"
 
 namespace ncnn {
 
@@ -96,6 +97,9 @@ public:
     int forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightmode) const;
     //使用循环来进行计算
     int forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::vector<Mat> &blob_mats,bool lightmode) const;
+#if NCNN_DEBUG_FILE
+	int set_df() const;
+#endif
 
         //protected:
     std::vector<Blob> blobs;
@@ -105,6 +109,9 @@ public:
 	std::vector<int> output_blobs;
 
     std::vector<layer_registry_entry> custom_layer_registry;
+#if NCNN_DEBUG_FILE
+	Debug_file *df;
+#endif
 };
 
 class Extractor
