@@ -83,6 +83,7 @@ int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
     }
     else if (pad_w == -233 && pad_h == -233)
     {
+        //TODO: untrustable branch
         int wpad = kernel_extent_w + (w - 1) / stride_w * stride_w - w;
         int hpad = kernel_extent_h + (h - 1) / stride_h * stride_h - h;
         if (wpad > 0 || hpad > 0)
