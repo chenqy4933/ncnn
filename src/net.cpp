@@ -861,7 +861,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         }
 
         // forward
-        if (layer->support_inplace)
+        if (lightmode && layer->support_inplace)
         {
             Mat& bottom_top_blob = bottom_blob;
 #if NCNN_BENCHMARK
@@ -934,7 +934,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         }
 
         // forward
-        if (layer->support_inplace)
+        if (lightmode && layer->support_inplace)
         {
             std::vector<Mat>& bottom_top_blobs = bottom_blobs;
 #if NCNN_BENCHMARK
@@ -1023,7 +1023,7 @@ int Net::forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::
                 }
             }
 
-            if (layer->support_inplace) //如果layer可以为inplace模式
+            if (lightmode && layer->support_inplace) //如果layer可以为inplace模式
             { 
                // Mat &bottom_top_blob = bottom_blob;
 #if NCNN_BENCHMARK
@@ -1085,7 +1085,7 @@ int Net::forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::
             }
 
             // forward
-            if (layer->support_inplace)
+            if (lightmode && layer->support_inplace)
             {
                 std::vector<Mat> &bottom_top_blobs = bottom_blobs;
 #if NCNN_BENCHMARK
