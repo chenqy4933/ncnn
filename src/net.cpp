@@ -880,7 +880,7 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         }
         else
         {
-            Mat top_blob;
+            Mat top_blob = blob_mats[top_blob_index];
 #if NCNN_BENCHMARK
 #if NCNN_DEBUG_FILE
             df->write_input(bottom_blob,layer_index);
@@ -961,6 +961,12 @@ int Net::forward_layer(int layer_index, std::vector<Mat>& blob_mats, bool lightm
         {
             std::vector<Mat> top_blobs;
             top_blobs.resize(layer->tops.size());
+            for (size_t i = 0; i < layer->tops.size(); i++)
+            {
+                int top_blob_index = layer->tops[i];
+
+                top_blobs[i] = blob_mats[top_blob_index];
+            }
 #if NCNN_BENCHMARK
 #if NCNN_DEBUG_FILE
             df->write_inputs(bottom_blobs, layer_index);
@@ -1042,7 +1048,7 @@ int Net::forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::
             }
             else
             {
-                Mat top_blob ;//= blob_mats[top_blob_index];
+                Mat top_blob = blob_mats[top_blob_index];
 #if NCNN_BENCHMARK
                 double start = get_current_time();
                 int ret = layer->forward(bottom_blob, top_blob);
@@ -1111,6 +1117,12 @@ int Net::forward_layer_FromeTo(int start_layer_index, int end_layer_index, std::
             {
                 std::vector<Mat> top_blobs;
                 top_blobs.resize(layer->tops.size());
+                for (size_t i = 0; i < layer->tops.size(); i++)
+                {
+                    int top_blob_index = layer->tops[i];
+
+                    top_blobs[i] = blob_mats[top_blob_index];
+                }
 #if NCNN_BENCHMARK
                 double start = get_current_time();
                 int ret = layer->forward(bottom_blobs, top_blobs);
