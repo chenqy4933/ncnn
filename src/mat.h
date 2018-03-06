@@ -37,6 +37,8 @@ public:
     Mat(int w, int h, int c, size_t elemsize = 4);
     // copy
     Mat(const Mat& m);
+	// exchange num and channel(change to caffe memory method.)
+	Mat(int kernel_size, int channel, int num , const Mat& m, size_t elemsize = 4);
     // external vec
     Mat(int w, void* data, size_t elemsize = 4);
     // external image
@@ -268,6 +270,26 @@ inline Mat::Mat(const Mat& m)
 
     cstep = m.cstep;
 }
+
+inline Mat::Mat(int kernel_size, int channel, int num, const Mat& m, size_t elemsize)
+	: data(0), refcount(0), dims(0)
+{
+	create(kernel_size*kernel_size*num, channel, 1, 4);
+	
+	float *ncnn_data = (float *)m.data;
+	float *caffe_data = (float *)data;
+	int each = kernel_size * kernel_size;
+	
+	for (int i=0; i<num; i++)
+    {
+        for (int j=0; j<channel; j++)
+        {
+            memcpy(caffe_data +(j*num + i) , ncnn_data , sizeof(float) * each);
+			ncnn_data += each;
+        }
+    }
+}
+
 
 inline Mat::Mat(int _w, void* _data, size_t _elemsize)
     : data(_data), refcount(0), elemsize(_elemsize), dims(1)

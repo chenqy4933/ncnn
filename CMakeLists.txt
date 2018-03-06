@@ -70,9 +70,11 @@ endif()
 
 ##############################################
 
-#add_subdirectory(examples)
+# add_subdirectory(examples)
 # add_subdirectory(benchmark)
 add_subdirectory(src)
+add_subdirectory(layerTest)
+
 if(NOT ANDROID AND NOT IOS)
 add_subdirectory(tools)
 endif()

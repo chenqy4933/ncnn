@@ -16,6 +16,7 @@ set(ncnn_SRCS
     modelbin.cpp
     model_caffe.cpp
     debug_model.cpp
+    im2col.cpp
     net.cpp
     opencv.cpp
     paramdict.cpp
@@ -158,6 +159,7 @@ install(FILES
     layer.h
     model_caffe.h
     debug_model.h
+    im2col.h
     layer_type.h
     mat.h
     modelbin.h
