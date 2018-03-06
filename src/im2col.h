@@ -2,6 +2,8 @@
 #define _CAFFE_UTIL_IM2COL_HPP_
 
 #include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 
 namespace ncnn {
 

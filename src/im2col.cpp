@@ -1,6 +1,7 @@
-#include <vector>
 
+#include <vector>
 #include "im2col.h"
+
 
 namespace ncnn {
 
