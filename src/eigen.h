@@ -26,9 +26,8 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> M
 
 
 inline void conv_col2im_cpu(const float* col_buff, float* data, const ncnn::Mat& bottomBlob,
-	ncnn::Mat& topBlob, int pad_w, int pad_h, int kernel, int stride) 
+	ncnn::Mat& topBlob, int pad_h, int pad_w, int kernel, int stride) 
 {
-
 	ncnn::col2im_cpu(col_buff, topBlob.c,
 	  topBlob.h, topBlob.w,
 	  topBlob.cstep, bottomBlob.cstep,
@@ -36,27 +35,44 @@ inline void conv_col2im_cpu(const float* col_buff, float* data, const ncnn::Mat&
 	  pad_h, pad_w,
 	  stride, stride,
 	  1, 1, data);
-
 }
 
-static int deconv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, const ncnn::Mat& _kernel, const ncnn::Mat& _bias, int pad_w, int pad_h, int kernel_sz, int stride_sz)
+inline void conv_col2im_cpu(const float* col_buff, float* data, 
+	const ncnn::Mat& bottomBlob, ncnn::Mat& topBlob, 
+	int pad_h, int pad_w, int kernel_h, int kernel_w, 
+	int stride_h, int stride_w, int dilation_h, int dilation_w) 
+{
+	ncnn::col2im_cpu(col_buff, topBlob.c,
+	  topBlob.h, topBlob.w,
+	  topBlob.cstep, bottomBlob.cstep,
+	  kernel_h, kernel_w,
+	  pad_h, pad_w,
+	  stride_h, stride_w,
+	  dilation_h, dilation_w, data);
+}
+
+
+static int deconv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, 
+	const ncnn::Mat& _kernel, const ncnn::Mat& _bias, 
+	int pad_h, int pad_w, 
+	int kernel_h, int kernel_w,
+	int stride_h, int stride_w,
+	int dilation_h,int dilation_w
+	)
 {
 	//M  	: 	kernel_dim_ 					weight权值的大小(num_*kh*kw)
 	//N		:	conv_out_spatial_dim_			bottom_blob的大小(h*w)		
 	//beta	:	0
-	//K		:	conv_out_channels_ / group_		c/g
+	//K		:	conv_out_channels_ / group_		bottom_blob的通道(c/g)
 	//alpha	:	1
 	//A		:	weights + weight_offset_ * g
 	//B		:	output + output_offset_ * g
 
 	//allocate weight to exchange num and channel.
 	//TODO: no alloc.
+	ncnn::Mat _kernelchange(kernel_h, kernel_w, bottom_blob.c, top_blob.c, _kernel);
 	
-	//TODO: num*K*K必须连续
-	ncnn::Mat _kernelchange(kernel_sz, bottom_blob.c, top_blob.c, _kernel);
-	
-	int M 		= top_blob.c * kernel_sz * kernel_sz;
-	//int M 		= top_blob.c * _kernelchange.cstep;
+	int M 		= top_blob.c * kernel_h * kernel_w;
 	int N 		= bottom_blob.cstep;
 	float beta 	= 0.;
 	int K		= bottom_blob.c;
@@ -84,16 +100,16 @@ static int deconv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, const
 	MAP_CONST_SMATRIX(eB, B, K, N);
 	eC.noalias() += alpha * (eA.transpose() * eB);
 
-	conv_col2im_cpu(C, outv, bottom_blob, top_blob, pad_w, pad_h, kernel_sz, stride_sz);
+	conv_col2im_cpu(C, outv, bottom_blob, top_blob, pad_h, pad_w, kernel_h, kernel_w, stride_h, stride_w, dilation_h, dilation_w);
 
 	free(C);
 
 	return 1;
 }
 
-static int deconv4x4s2_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, const ncnn::Mat& _kernel, const ncnn::Mat& _bias, int pad_w, int pad_h)
+static int deconv4x4s2_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, const ncnn::Mat& _kernel, const ncnn::Mat& _bias, int pad_h, int pad_w)
 {
-	return deconv_eigen(bottom_blob,top_blob,_kernel,_bias,pad_w,pad_h,4,2);
+	return deconv_eigen(bottom_blob,top_blob,_kernel,_bias,pad_h,pad_w,4,4,2,2,1,1);
 }
 
 #endif

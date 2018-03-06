@@ -16,7 +16,7 @@
 #include <arm_neon.h>
 #endif // __ARM_NEON
 
-static int deconv3x3s1_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _kernel, const Mat& _bias, int pad_w, int pad_h)
+static void deconv3x3s1_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _kernel, const Mat& _bias)
 {
     int w = bottom_blob.w;
     int h = bottom_blob.h;
@@ -235,10 +235,9 @@ static int deconv3x3s1_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _k
             }
         }
     }
-	return 0;
 }
 
-static int deconv3x3s2_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _kernel, const Mat& _bias, int pad_w, int pad_h)
+static void deconv3x3s2_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _kernel, const Mat& _bias)
 {
     int w = bottom_blob.w;
     int h = bottom_blob.h;
@@ -364,5 +363,4 @@ static int deconv3x3s2_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _k
             }
         }
     }
-	return 0;
 }

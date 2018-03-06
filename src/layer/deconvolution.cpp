@@ -14,7 +14,6 @@
 
 #include "deconvolution.h"
 #include "eigen.h"
-#define NCNN_USE_EIGEN 1
 
 namespace ncnn {
 
@@ -159,48 +158,22 @@ int Deconvolution::forward(const Mat& bottom_blob, Mat& top_blob) const
 
 int Deconvolution::forward_eigen(const Mat& bottom_blob, Mat& top_blob) const
 {
-    if (kernel_w != kernel_h || stride_w != stride_h)
-    {
-        return Deconvolution::forward(bottom_blob, top_blob);
-    }
-
-    const int kernel_size = kernel_w;
-    const int stride = stride_w;
-
-    if (dilation_w != 1 || dilation_h != 1)
-    {
-        return Deconvolution::forward(bottom_blob, top_blob);
-    }
-
     int w = bottom_blob.w;
     int h = bottom_blob.h;
 
-    int outw = (w - 1) * stride + kernel_size;
-    int outh = (h - 1) * stride + kernel_size;
+    int outw = (w - 1) * stride_w + dilation_w * (kernel_w -1 ) + 1 - 2*pad_w;
+    int outh = (h - 1) * stride_h + dilation_h * (kernel_h -1 ) + 1 - 2*pad_h ;
+    
 
     Mat top_blob_bordered = top_blob;
     top_blob_bordered.create(outw, outh, num_output);
     if (top_blob_bordered.empty())
         return -100;
-    
-    if(bias_term == 0)
-        ;
 
-    int ret = deconv_eigen(bottom_blob, top_blob_bordered, weight_data, bias_data, pad_w, pad_h, kernel_size, stride);
+    deconv_eigen(bottom_blob, top_blob_bordered, weight_data, bias_data,
+        pad_h, pad_w, kernel_h, kernel_w, stride_h, stride_w, dilation_h, dilation_w);
 
     top_blob = top_blob_bordered;
-
-    if(!ret){
-        if (pad_w > 0 || pad_h > 0)
-        {
-            copy_cut_border(top_blob_bordered, top_blob, pad_h, pad_h, pad_w, pad_w);
-            if (top_blob.empty())
-                return -100;
-
-            outw = top_blob.w;
-            outh = top_blob.h;
-        }
-    }
 
     return 0;
 }

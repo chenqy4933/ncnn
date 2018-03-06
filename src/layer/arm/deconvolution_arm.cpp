@@ -14,7 +14,6 @@
 
 #include "deconvolution_arm.h"
 #include "eigen.h"
-#define NCNN_USE_EIGEN 0
 
 namespace ncnn {
 
@@ -41,7 +40,7 @@ int Deconvolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
         return Deconvolution::forward(bottom_blob, top_blob);
     }
 
-    typedef int (*deconv_func)(const Mat&, Mat&, const Mat&, const Mat&, int, int);
+    typedef void (*deconv_func)(const Mat&, Mat&, const Mat&, const Mat&);
 
     // kernel_size x stride
     deconv_func deconv_func_table[2][2] =
@@ -52,11 +51,7 @@ int Deconvolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
         },  // kernel_size = 3
         {
             deconv4x4s1_neon,
-#if NCNN_USE_EIGEN
-            deconv4x4s2_eigen
-#else
             deconv4x4s2_neon
-#endif
         }   // kernel_size = 4
     };
 
@@ -77,22 +72,19 @@ int Deconvolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
     if (top_blob_bordered.empty())
         return -100;
 
-    int ret = deconv(bottom_blob, top_blob_bordered, weight_data, bias_data, pad_w, pad_h);
+    deconv(bottom_blob, top_blob_bordered, weight_data, bias_data);
 
     top_blob = top_blob_bordered;
 
-    if(!ret){
-        if (pad_w > 0 || pad_h > 0)
-        {
-            copy_cut_border(top_blob_bordered, top_blob, pad_h, pad_h, pad_w, pad_w);
-            if (top_blob.empty())
-                return -100;
+    if (pad_w > 0 || pad_h > 0)
+    {
+        copy_cut_border(top_blob_bordered, top_blob, pad_h, pad_h, pad_w, pad_w);
+        if (top_blob.empty())
+            return -100;
 
-            outw = top_blob.w;
-            outh = top_blob.h;
-        }
+        outw = top_blob.w;
+        outh = top_blob.h;
     }
-
     return 0;
 }
 

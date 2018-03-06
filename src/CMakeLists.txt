@@ -40,6 +40,13 @@ macro(ncnn_add_layer class)
 
         # look for arch specific implementation and append source
         # optimized implementation for armv7 aarch64
+	if("${NCNN_USE_EIGEN}" STREQUAL "ON")
+	     message("NCNN_USE_EIGEN = ${NCNN_USE_EIGEN}")
+	    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/layer/eigen/${name}_eigen.cpp")
+                list(APPEND ncnn_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/layer/eigen/${name}_eigen.cpp")
+                set(WITH_LAYER_${name}_eigen 1)
+            endif()
+	endif()
         if((ANDROID AND ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "armv7-a"))
             OR (ANDROID AND ("${CMAKE_SYSTEM_PROCESSOR}" STREQUAL "aarch64"))
             OR (IOS AND ("${CMAKE_OSX_ARCHITECTURES}" STREQUAL "armv7"))
@@ -59,7 +66,12 @@ macro(ncnn_add_layer class)
 
     # generate layer_declaration and layer_registry file
     if(WITH_LAYER_${name})
-        if(WITH_LAYER_${name}_arm)
+    	if(WITH_LAYER_${name}_eigen)
+	    file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_declaration.h
+                "extern Layer* ${class}_eigen_layer_creator();\n")
+            file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_registry.h
+                "#if NCNN_STRING\n{\"${class}\",${class}_eigen_layer_creator},\n#else\n{${class}_eigen_layer_creator},\n#endif\n")
+        elseif(WITH_LAYER_${name}_arm)
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_declaration.h
                 "extern Layer* ${class}_arm_layer_creator();\n")
             file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/layer_registry.h
