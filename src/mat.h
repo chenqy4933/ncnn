@@ -275,7 +275,7 @@ inline Mat::Mat(int kernel_h, int kernel_w, int channel, int num, const Mat& m, 
 	: data(0), refcount(0), dims(0)
 {
 	//num*K*K±ØĞëÁ¬Ğø
-	create(kernel_h*kernel_w*num, channel, 4);
+	create(kernel_h*kernel_w*num, channel, elemsize);
 	
 	float *ncnn_data = (float *)m.data;
 	float *caffe_data = (float *)data;
@@ -285,7 +285,7 @@ inline Mat::Mat(int kernel_h, int kernel_w, int channel, int num, const Mat& m, 
     {
         for (int j=0; j<channel; j++)
         {
-            memcpy(caffe_data +(j*num + i) , ncnn_data , sizeof(float) * each);
+            memcpy(caffe_data +(j*num + i) * each, ncnn_data , sizeof(float) * each);
 			ncnn_data += each;
         }
     }

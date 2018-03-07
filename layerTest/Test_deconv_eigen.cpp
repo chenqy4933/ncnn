@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 {
     //./Test stride pad
     // layer params
-    int stride  = 1;
+    int stride  = 2;
     int pad     = 0;
     if (argc > 1 ) {
 		istringstream Tmpstream(argv[1]);
@@ -58,11 +58,11 @@ int main(int argc, char **argv)
 	}
     
     Deconvolution deconvolution_layer;
-    deconvolution_layer.num_output = 1;
+    deconvolution_layer.num_output = 2;
     deconvolution_layer.kernel_w = KERNEL;
     deconvolution_layer.kernel_h = KERNEL;
-    deconvolution_layer.dilation_w = 2;
-	deconvolution_layer.dilation_h = 2;
+    deconvolution_layer.dilation_w = 1;
+	deconvolution_layer.dilation_h = 1;
     deconvolution_layer.stride_w = stride;
 	deconvolution_layer.stride_h = stride;
     deconvolution_layer.pad_w = pad;
@@ -82,10 +82,12 @@ int main(int argc, char **argv)
         0.0f, 1.0f, 2.0f,
         1.0f, 2.0f, 3.0f,
         2.0f, 3.0f, 4.0f,
-        
+        0.f,0.f,0.f
+        /*
         1.0f, 2.0f, 3.0f,
         2.0f, 3.0f, 4.0f,
-        3.0f, 4.0f, 5.0f
+        3.0f, 4.0f, 5.0f,
+        0.f,0.f,0.f*/
     };
     float in4[] = {
         0.0f, 1.0f, 2.0f, 3.0f,
@@ -156,7 +158,8 @@ int main(int argc, char **argv)
     };
  
     // forward
-    Mat mat_in(3, 3, CHANNEL, in);
+    #define input_hw 3
+    Mat mat_in(input_hw, input_hw, CHANNEL, in);
     Mat mat_out;
 
     deconvolution_layer.bias_data.data = b;
@@ -167,11 +170,15 @@ int main(int argc, char **argv)
     printf("w: %d.\n", mat_out.w);
     printf("h: %d.\n", mat_out.h);
     printf("c: %d.\n", mat_out.c);
-    for (int i = 0; i < (int)mat_out.h; ++i)
-    {
-        for (int j = 0; j < (int)mat_out.w; ++j)
-            printf("%-4.1f ", mat_out[i*mat_out.w + j]);
-        printf("\n");
+    for (int n=0; n<mat_out.c; n++) {
+        Mat mat_tmp = mat_out.channel(n);
+        printf("channel: %d:\n", n);
+        for (int i = 0; i < (int)mat_tmp.h; ++i)
+        {
+            for (int j = 0; j < (int)mat_tmp.w; ++j)
+                printf("%-4.1f ", mat_tmp[i*mat_tmp.w + j]);
+            printf("\n");
+        }
     }
     printf("\n");
     return 0;
