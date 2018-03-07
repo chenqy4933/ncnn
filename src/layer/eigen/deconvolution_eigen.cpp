@@ -21,6 +21,20 @@ DEFINE_LAYER_CREATOR(Deconvolution_eigen)
 
 int Deconvolution_eigen::forward(const Mat& bottom_blob, Mat& top_blob) const
 {
+    //TODO: nend to support 
+    if (kernel_w != kernel_h || stride_w != stride_h)
+    {
+        return Deconvolution::forward(bottom_blob, top_blob);
+    }
+
+    const int kernel_size = kernel_w;
+    const int stride = stride_w;
+
+    if ((kernel_size != 3 && kernel_size != 4) || stride > 2 || dilation_w != 1 || dilation_h != 1)
+    {
+        return Deconvolution::forward(bottom_blob, top_blob);
+    }
+
     int w = bottom_blob.w;
     int h = bottom_blob.h;
 

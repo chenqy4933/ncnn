@@ -68,6 +68,8 @@ static int deconv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob,
 	//A		:	weights + weight_offset_ * g
 	//B		:	output + output_offset_ * g
 
+	//TODO: bottom align data should be set as 0.
+
 	//allocate weight to exchange num and channel.
 	//TODO: no alloc.
 	ncnn::Mat _kernelchange(kernel_h, kernel_w, bottom_blob.c, top_blob.c, _kernel);
