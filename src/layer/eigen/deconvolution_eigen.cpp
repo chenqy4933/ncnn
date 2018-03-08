@@ -21,20 +21,6 @@ DEFINE_LAYER_CREATOR(Deconvolution_eigen)
 
 int Deconvolution_eigen::forward(const Mat& bottom_blob, Mat& top_blob) const
 {
-    //TODO: nend to support 
-    if (kernel_w != kernel_h || stride_w != stride_h)
-    {
-        return Deconvolution::forward(bottom_blob, top_blob);
-    }
-
-    const int kernel_size = kernel_w;
-    const int stride = stride_w;
-
-    if ((kernel_size != 3 && kernel_size != 4) || stride > 2 || dilation_w != 1 || dilation_h != 1)
-    {
-        return Deconvolution::forward(bottom_blob, top_blob);
-    }
-
     int w = bottom_blob.w;
     int h = bottom_blob.h;
 
@@ -42,9 +28,13 @@ int Deconvolution_eigen::forward(const Mat& bottom_blob, Mat& top_blob) const
     int outh = (h - 1) * stride_h + dilation_h * (kernel_h -1 ) + 1 - 2*pad_h ;
 
     Mat top_blob_bordered = top_blob;
-    top_blob_bordered.create(outw, outh, num_output);
-    if (top_blob_bordered.empty())
-        return -100;
+    if(no_exchange_top_blob && !top_blob_bordered.empty()){
+        ;
+    }else{
+        top_blob_bordered.create(outw, outh, num_output);
+        if (top_blob_bordered.empty())
+            return -100;
+    }
 
     deconv_eigen(bottom_blob, top_blob_bordered, weight_data, bias_data,
         pad_h, pad_w, kernel_h, kernel_w, stride_h, stride_w, dilation_h, dilation_w);

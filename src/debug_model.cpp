@@ -12,12 +12,12 @@
 
 void GetInputBlobBinPath(char* path)
 {
-  sprintf(path, CAFFE_OUTPUT_BLOB_BIN_BASE_PATH "/input/%lu", pthread_self());
+  sprintf(path, CAFFE_OUTPUT_BLOB_BIN_BASE_PATH "/input/%lu", (unsigned long)pthread_self());
 }
 
 void GetOutputBlobBinPath(char* path)
 {
-  sprintf(path, CAFFE_OUTPUT_BLOB_BIN_BASE_PATH "/output/%lu", pthread_self());
+  sprintf(path, CAFFE_OUTPUT_BLOB_BIN_BASE_PATH "/output/%lu", (unsigned long)pthread_self());
 }
 
 namespace ncnn {
@@ -54,22 +54,26 @@ int Debug_file::write_inputs(std::vector<Mat> &blobs,int layer_index) const
 {
     char const *path = (char const *)input_path;
     df_writes(blobs,layer_index,path);
+    return 0;
 }
 int Debug_file::write_outputs(std::vector<Mat> &blobs,int layer_index) const
 {
     char const *path = output_path;
     df_writes(blobs,layer_index,path);
+    return 0;
 }
 
 int Debug_file::write_input(Mat &blob,int layer_index) const
 {
     char const *path = input_path;
     df_write(blob,layer_index,path);
+    return 0;
 }
 int Debug_file::write_output(Mat &blob,int layer_index) const
 {
     char const *path = output_path;
     df_write(blob,layer_index,path);
+    return 0;
 }
 
 }
