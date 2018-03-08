@@ -678,7 +678,9 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             }
             else
             {
-                float scale_factor = 1 / binlayer.blobs(2).data().data()[0];
+                const caffe::BlobProto& scale_blob = binlayer.blobs(2);
+                Mat scale_mat = BlobProto2Mat(scale_blob);
+                float scale_factor = 1 / (((float *)scale_mat.data)[0]);
                 // premultiply scale_factor to mean and variance
                 float tmp;
                 for (int j=0; j<(int)mean_mat.total(); j++)
