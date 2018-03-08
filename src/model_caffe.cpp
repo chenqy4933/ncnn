@@ -352,6 +352,38 @@ int Model_Caffe::caffe2ncnn(unsigned char** ppm,
     return CaffeNetParameter2ncnn(ppm,	bpm, net, net, net_size, Mem64k);
 }
 
+inline void binary16_decode(const uint16_t* f16, float* f32)
+{
+	uint32_t& u32 = *(uint32_t*)(f32);
+	const uint16_t& u16 = *f16;
+	int ex = ((u16 & 0x7c00) >> 10);
+	ex = std::max(0, std::min(ex - 0x0f + 0x7f, 0xff));
+	u32 = ((u16 & 0x8000) << 16) + (ex << 23) + ((u16 & 0x03ff) << 13);
+}
+
+inline Mat BlobProto2Mat(const caffe::BlobProto& blobProto)
+{
+    const char *data;
+    int size;
+    Mat mat;
+    if(blobProto.has_byte_data()){
+        const std::string byte_data = blobProto.byte_data();
+        data = (const char *)byte_data.c_str();
+        size = byte_data.size();
+        mat.create(size/2);
+        for (int i = 0; i < size/2; ++i) {
+    	  float val;
+    	  binary16_decode((const uint16_t*)(&data[2 * i]), &val);
+    	  mat[i] = val;
+    	}
+    }else{
+        data = (const char *)blobProto.data().data();
+        size = blobProto.data_size();
+        mat = Mat(size, (void *)data);
+    }
+    return mat;
+}
+
 int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
 		unsigned char** bpm,
         caffe::NetParameter& proto,
@@ -621,23 +653,26 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             const caffe::LayerParameter& binlayer = net.layer(netidx);
 
             const caffe::BlobProto& mean_blob = binlayer.blobs(0);
+            Mat mean_mat = BlobProto2Mat(mean_blob);
             const caffe::BlobProto& var_blob = binlayer.blobs(1);
+            Mat var_mat = BlobProto2Mat(var_blob);
+
             MTappend(&pp,0);
-            MTappend(&pp,(int)mean_blob.data_size());
+            MTappend(&pp,(int)mean_mat.total());
 
             const caffe::BatchNormParameter& batch_norm_param = layer.batch_norm_param();
             float eps = batch_norm_param.eps();
 
-            std::vector<float> ones(mean_blob.data_size(), 1.f);
+            std::vector<float> ones(mean_mat.total(), 1.f);
             stringAppend(&bp, ones.data(), sizeof(float) * ones.size());// slope
 
             if (binlayer.blobs_size() < 3)
             {
-                stringAppend(&bp, mean_blob.data().data(), sizeof(float) * mean_blob.data_size());
+                stringAppend(&bp, mean_mat.data, sizeof(float) * mean_mat.total());
                 float tmp;
-                for (int j=0; j<var_blob.data_size(); j++)
+                for (int j=0; j<(int)var_mat.total(); j++)
                 {
-                    tmp = var_blob.data().data()[j] + eps;
+                    tmp = var_mat[j] + eps;
                     stringAppend(&bp, &tmp, sizeof(float) * 1);
                 }
             }
@@ -646,19 +681,19 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 float scale_factor = 1 / binlayer.blobs(2).data().data()[0];
                 // premultiply scale_factor to mean and variance
                 float tmp;
-                for (int j=0; j<mean_blob.data_size(); j++)
+                for (int j=0; j<(int)mean_mat.total(); j++)
                 {
-                    tmp = mean_blob.data().data()[j] * scale_factor;
+                    tmp = mean_mat[j] * scale_factor;
                     stringAppend(&bp, &tmp, sizeof(float) * 1);
                 }
-                for (int j=0; j<var_blob.data_size(); j++)
+                for (int j=0; j<(int)var_mat.total(); j++)
                 {
-                    tmp = var_blob.data().data()[j] * scale_factor + eps;
+                    tmp = var_mat[j] * scale_factor + eps;
                     stringAppend(&bp, &tmp, sizeof(float) * 1);
                 }
             }
 
-            std::vector<float> zeros(mean_blob.data_size(), 0.f);
+            std::vector<float> zeros(mean_mat.total(), 0.f);
             stringAppend(&bp, zeros.data(), sizeof(float) * zeros.size());// bias
         }
         else if (layer.type() == "Concat")
@@ -673,6 +708,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             const caffe::LayerParameter& binlayer = net.layer(netidx);
 
             const caffe::BlobProto& weight_blob = binlayer.blobs(0);
+            Mat weight_mat = BlobProto2Mat(weight_blob);
+            
             const caffe::ConvolutionParameter& convolution_param = layer.convolution_param();
             MTappend(&pp,0);
             MTappend(&pp,(int)convolution_param.num_output());
@@ -723,7 +760,7 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             MTappend(&pp,5);
             MTappend(&pp,(int)convolution_param.bias_term());
             MTappend(&pp,6);
-            MTappend(&pp,(int)weight_blob.data_size());
+            MTappend(&pp,(int)weight_mat.total());
 
             if (layer.type() == "ConvolutionDepthwise")
             {
@@ -740,7 +777,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             {
                 int quantize_tag = 0;
                 const caffe::BlobProto& blob = binlayer.blobs(j);
-
+                Mat blob_mat = BlobProto2Mat(blob);
+                
                 std::vector<float> quantize_table;
                 std::vector<unsigned char> quantize_index;
 
@@ -751,11 +789,11 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 {
                     if (quantize_level == 256)
                     {
-                    quantize_tag = quantize_weight((float *)blob.data().data(), blob.data_size(), quantize_level, quantize_table, quantize_index);
+                    quantize_tag = quantize_weight((float *)blob_mat.data, blob_mat.total(), quantize_level, quantize_table, quantize_index);
                     }
                     else if (quantize_level == 65536)
                     {
-                    quantize_tag = quantize_weight((float *)blob.data().data(), blob.data_size(), float16_weights);
+                    quantize_tag = quantize_weight((float *)blob_mat.data, blob_mat.total(), float16_weights);
                     }
                 }
 
@@ -804,7 +842,7 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                     nread = memcpy(m, blob.data().data(), w * sizeof(float));
                     bp.push_back(m);
                     */
-                    stringAppend(&bp, blob.data().data(), sizeof(float) * blob.data_size());
+                    stringAppend(&bp, blob_mat.data, sizeof(float) * blob_mat.total());
                     
                 }
             }
@@ -826,6 +864,7 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             const caffe::LayerParameter& binlayer = net.layer(netidx);
 
             const caffe::BlobProto& weight_blob = binlayer.blobs(0);
+            Mat weight_mat = BlobProto2Mat(weight_blob);
             const caffe::ConvolutionParameter& convolution_param = layer.convolution_param();
             MTappend(&pp,0);
             MTappend(&pp,(int)convolution_param.num_output());
@@ -874,7 +913,7 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             MTappend(&pp,5);
             MTappend(&pp,(int)convolution_param.bias_term());
             MTappend(&pp,6);
-            MTappend(&pp,(int)weight_blob.data_size());
+            MTappend(&pp,(int)weight_mat.total());
 
             if (convolution_param.group() != 1)
             {
@@ -896,8 +935,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 ksize = convolution_param.kernel_size(0) * convolution_param.kernel_size(0);
             }
             int num_output = convolution_param.num_output();
-            int num_input = weight_blob.data_size() / (ksize) / num_output;
-            const float* weight_data_ptr = weight_blob.data().data();
+            int num_input = weight_mat.total() / (ksize) / num_output;
+            float* weight_data_ptr = (float *)weight_mat.data;
             for (int k=0; k<num_output; k++)
             {
                 for (int j=0; j<num_input; j++)
@@ -909,7 +948,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             for (int j=1; j<binlayer.blobs_size(); j++)
             {
                 const caffe::BlobProto& blob = binlayer.blobs(j);
-                stringAppend(&bp, blob.data().data(), sizeof(float) * blob.data_size());
+                Mat blob_mat = BlobProto2Mat(blob);
+                stringAppend(&bp, blob_mat.data, sizeof(float) * blob_mat.total());
             }
         }
         #if 0
@@ -959,19 +999,20 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             const caffe::LayerParameter& binlayer = net.layer(netidx);
 
             const caffe::BlobProto& weight_blob = binlayer.blobs(0);
+            Mat weight_mat = BlobProto2Mat(weight_blob);
             const caffe::InnerProductParameter& inner_product_param = layer.inner_product_param();
             MTappend(&pp,0);
             MTappend(&pp,(int)inner_product_param.num_output());
             MTappend(&pp,1);
             MTappend(&pp,(int)inner_product_param.bias_term());
             MTappend(&pp,2);
-            MTappend(&pp,(int)weight_blob.data_size());
+            MTappend(&pp,(int)weight_mat.total());
 
             for (int j=0; j<binlayer.blobs_size(); j++)
             {
                 int quantize_tag = 0;
                 const caffe::BlobProto& blob = binlayer.blobs(j);
-
+                Mat blob_mat = BlobProto2Mat(blob);
                 std::vector<float> quantize_table;
                 std::vector<unsigned char> quantize_index;
 
@@ -982,11 +1023,11 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 {
                     if (quantize_level == 256)
                     {
-                    quantize_tag = quantize_weight((float *)blob.data().data(), blob.data_size(), quantize_level, quantize_table, quantize_index);
+                    quantize_tag = quantize_weight((float *)blob_mat.data, blob_mat.total(), quantize_level, quantize_table, quantize_index);
                     }
                     else if (quantize_level == 65536)
                     {
-                    quantize_tag = quantize_weight((float *)blob.data().data(), blob.data_size(), float16_weights);
+                    quantize_tag = quantize_weight((float *)blob_mat.data, blob_mat.total(), float16_weights);
                     }
                 }
 
@@ -1019,7 +1060,7 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 else
 				{
                     // write original data
-                    stringAppend(&bp, blob.data().data(), sizeof(float) * blob.data_size());
+                    stringAppend(&bp, blob_mat.data, sizeof(float) * blob_mat.total());
                 }
             }
         }
@@ -1273,9 +1314,10 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
         {
             const caffe::LayerParameter& binlayer = net.layer(netidx);
             const caffe::BlobProto& slope_blob = binlayer.blobs(0);
+            Mat slope_mat = BlobProto2Mat(slope_blob);
             MTappend(&pp,0);
-            MTappend(&pp, slope_blob.data_size());
-            stringAppend(&bp, slope_blob.data().data(), sizeof(float) * slope_blob.data_size());
+            MTappend(&pp, (int)slope_mat.total());
+            stringAppend(&bp, slope_mat.data, sizeof(float) * slope_mat.total());
         }
         #if 0
         else if (layer.type() == "PriorBox")
@@ -1476,8 +1518,9 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             if (scale_weight)
             {
                 const caffe::BlobProto& weight_blob = binlayer.blobs(0);
+                Mat weight_mat = BlobProto2Mat(weight_blob);
                 MTappend(&pp,0);
-                MTappend(&pp,(int)weight_blob.data_size());
+                MTappend(&pp,(int)weight_mat.total());
             }
             else
             {
@@ -1491,7 +1534,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
             for (int j=0; j<binlayer.blobs_size(); j++)
             {
                 const caffe::BlobProto& blob = binlayer.blobs(j);
-                stringAppend(&bp, blob.data().data(), sizeof(float) * blob.data_size());
+                Mat blob_mat = BlobProto2Mat(blob);
+                stringAppend(&bp, blob_mat.data, sizeof(float) * blob_mat.total());
             }
         }
         else if (layer.type() == "ShuffleChannel")
