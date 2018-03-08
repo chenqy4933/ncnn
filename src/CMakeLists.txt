@@ -184,5 +184,6 @@ install(FILES
     benchmark.h
     ${CMAKE_CURRENT_BINARY_DIR}/layer_type_enum.h
     ${CMAKE_CURRENT_BINARY_DIR}/platform.h
+    ${CMAKE_CURRENT_BINARY_DIR}/caffe.pb.h
     DESTINATION include
 )
