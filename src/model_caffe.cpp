@@ -1078,6 +1078,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 MTappend(&pp,(int)bs.dim(2));
                 MTappend(&pp,2);
                 MTappend(&pp,(int)bs.dim(1));
+                MTappend(&pp,3);
+                MTappend(&pp,(int)bs.dim(0));
             }
             else if (bs.dim_size() == 3)
             {
@@ -1087,6 +1089,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 MTappend(&pp,(int)bs.dim(1));
                 MTappend(&pp,2);
                 MTappend(&pp,-233);
+                MTappend(&pp,3);
+                MTappend(&pp,-233);
             }
             else if (bs.dim_size() == 2)
             {
@@ -1095,6 +1099,8 @@ int Model_Caffe::CaffeNetParameter2ncnn(unsigned char** ppm,
                 MTappend(&pp,1);
                 MTappend(&pp,-233);
                 MTappend(&pp,2);
+                MTappend(&pp,-233);
+                MTappend(&pp,3);
                 MTappend(&pp,-233);
             }
         }

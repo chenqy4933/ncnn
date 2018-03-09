@@ -785,18 +785,21 @@ int main(int argc, char** argv)
                 fprintf(pp, " 0=%ld", (long)bs.dim(3));
                 fprintf(pp, " 1=%ld", (long)bs.dim(2));
                 fprintf(pp, " 2=%ld", (long)bs.dim(1));
+                fprintf(pp, " 3=%ld", (long)bs.dim(0));
             }
             else if (bs.dim_size() == 3)
             {
                 fprintf(pp, " 0=%ld", (long)bs.dim(2));
                 fprintf(pp, " 1=%ld", (long)bs.dim(1));
                 fprintf(pp, " 2=-233");
+                fprintf(pp, " 3=-233");
             }
             else if (bs.dim_size() == 2)
             {
                 fprintf(pp, " 0=%ld", (long)bs.dim(1));
                 fprintf(pp, " 1=-233");
                 fprintf(pp, " 2=-233");
+                fprintf(pp, " 3=-233");
             }
         }
         else if (layer.type() == "Interp")
