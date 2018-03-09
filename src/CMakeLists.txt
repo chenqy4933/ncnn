@@ -182,6 +182,7 @@ install(FILES
     opencv.h
     paramdict.h
     benchmark.h
+    layer/input.h
     ${CMAKE_CURRENT_BINARY_DIR}/layer_type_enum.h
     ${CMAKE_CURRENT_BINARY_DIR}/platform.h
     ${CMAKE_CURRENT_BINARY_DIR}/caffe.pb.h
