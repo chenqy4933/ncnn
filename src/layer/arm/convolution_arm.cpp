@@ -81,50 +81,42 @@ int Convolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
 
     // kernel_size x stride
     conv_func conv_func_table[7][4] =
-    {
         {
-            conv1x1s1_neon,
-            conv1x1s2_neon,
-            0,
-            0
-        }, // kernel_size = 1
-        {
-            conv2x2s1_neon,
-            0,
-            0,
-            0
-        }, // kernel_size = 2
-        {
-            conv3x3s1_neon,
-            conv3x3s2_neon,
-            0,
-            0
-        }, // kernel_size = 3
-        {
-            0,
-            0,
-            0,
-            conv4x4s4_neon
-        }, // kernel_size = 4
-        {
-            conv5x5s1_neon,
-            conv5x5s2_neon,
-            0,
-            0
-        }, // kernel_size = 5
-        {
-            0,
-            0,
-            0,
-            0
-        }, // kernel_size = 6
-        {
-            conv7x7s1_neon,
-            conv7x7s2_neon,
-            0,
-            0
-        }  // kernel_size = 7
-    };
+            {conv1x1s1_neon,
+             conv1x1s2_neon,
+             0,
+             0}, // kernel_size = 1
+            {
+                conv2x2s1_neon,
+                conv2x2s2_neon,
+                0,
+                0}, // kernel_size = 2
+            {
+                conv3x3s1_neon,
+                conv3x3s2_neon,
+                0,
+                0}, // kernel_size = 3
+            {
+                0,
+                0,
+                0,
+                conv4x4s4_neon}, // kernel_size = 4
+            {
+                conv5x5s1_neon,
+                conv5x5s2_neon,
+                0,
+                0}, // kernel_size = 5
+            {
+                0,
+                0,
+                0,
+                0}, // kernel_size = 6
+            {
+                conv7x7s1_neon,
+                conv7x7s2_neon,
+                0,
+                0} // kernel_size = 7
+        };
 
     conv_func conv = conv_func_table[kernel_size-1][stride-1];
     if (!conv)

@@ -378,3 +378,308 @@ static void conv2x2s1_neon(const Mat& bottom_blob, Mat& top_blob, const Mat& _ke
     }
 
 }
+
+static void conv2x2s2_neon(const Mat &bottom_blob, Mat &top_blob, const Mat &_kernel, const Mat &_bias)
+{
+    int w = bottom_blob.w;
+    int inch = bottom_blob.c;
+
+    int outw = top_blob.w;
+    int outh = top_blob.h;
+    int outch = top_blob.c;
+
+    const float *kernel = _kernel;
+    const float *bias = _bias;
+
+#pragma omp parallel for
+    for (int p = 0; p < outch; p++)
+    {
+        Mat out = top_blob.channel(p);
+
+        const float bias0 = bias ? bias[p] : 0.f;
+
+        out.fill(bias0);
+
+        int q = 0;
+
+        for (; q + 1 < inch; q += 2)
+        {
+            float *outptr = out;
+
+            const float *img0 = bottom_blob.channel(q);
+            const float *img1 = bottom_blob.channel(q + 1);
+
+            const float *kernel0 = kernel + p * inch * 4 + q * 4;
+            const float *kernel1 = kernel0 + 4;
+
+            const float *r00 = img0;
+            const float *r01 = img0 + w;
+
+            const float *r10 = img1;
+            const float *r11 = img1 + w;
+
+#if __ARM_NEON
+            float32x4_t _k0 = vld1q_f32(kernel0);
+            float32x4_t _k1 = vld1q_f32(kernel1);
+#endif // __ARM_NEON
+
+            for (int i = 0; i< outh; i++)   //高循环
+            {
+#if __ARM_NEON
+                int nn = outw >> 2;
+                int remain = outw & 3;
+#else
+                int remain = outw;
+#endif // __ARM_NEON
+
+#if __ARM_NEON
+//#if __aarch64__
+                for (; nn > 0; nn--)     //宽循环
+                {
+                    float32x4x2_t _r000 = vld2q_f32(r00);
+                    float32x4x2_t _r010 = vld2q_f32(r01);
+
+                    float32x4x2_t _r100 = vld2q_f32(r10);
+                    float32x4x2_t _r110 = vld2q_f32(r11);
+
+                    float32x4_t _sum = vld1q_f32(outptr);
+
+                    _sum = vmlaq_lane_f32(_sum, _r000.val[0], vget_low_f32(_k0), 0);
+                    _sum = vmlaq_lane_f32(_sum, _r000.val[1], vget_low_f32(_k0), 1);
+                    _sum = vmlaq_lane_f32(_sum, _r010.val[0], vget_high_f32(_k0), 0);
+                    _sum = vmlaq_lane_f32(_sum, _r010.val[1], vget_high_f32(_k0), 1);
+
+                    _sum = vmlaq_lane_f32(_sum, _r100.val[0], vget_low_f32(_k1), 0);
+                    _sum = vmlaq_lane_f32(_sum, _r100.val[1], vget_low_f32(_k1), 1);
+                    _sum = vmlaq_lane_f32(_sum, _r110.val[0], vget_high_f32(_k1), 0);
+                    _sum = vmlaq_lane_f32(_sum, _r110.val[1], vget_high_f32(_k1), 1);
+
+                    vst1q_f32(outptr, _sum);
+
+                    r00 += 8;
+                    r01 += 8;
+                    r10 += 8;
+                    r11 += 8;
+                    outptr += 4;
+                }
+// #else
+//                 if (nn > 0)
+//                 {
+//                     asm volatile(
+//                         "0:                             \n"
+
+//                         "pld        [%5, #128]          \n"
+//                         "vld1.f32   {d18-d19}, [%5]     \n" // q9 = sum
+
+//                         "pld        [%1, #256]          \n"
+//                         "vld2.f32   {d0-d3}, [%1]!      \n"
+//                         "pld        [%2, #256]          \n" //preload %2
+//                         "vmla.f32   q9, q0, %e12[0]     \n"
+//                         "vmla.f32   q9, q1, %e12[1]     \n"
+
+//                         "vld2.f32   {d4-d7}, [%2]!      \n"
+//                         "pld        [%3, #256]          \n" //preload %3
+//                         "vmul.f32   q9, q2, %f12[0]     \n"
+//                         "vmla.f32   q9, q3, %f12[1]    \n"
+
+//                         "vld2.f32   {d8-d11}, [%3]!    \n"
+//                         "pld        [%4, #256]          \n"
+//                         "vmla.f32   q9, q4, %e13[0]     \n"
+//                         "vmla.f32   q9, q5, %e13[1]    \n"
+
+//                         "vld2.f32   {d12-d15}, [%4]!    \n"
+//                         "vmla.f32   q9, q6, %f13[0]    \n"
+//                         "vmla.f32   q9, q7, %f13[1]    \n"
+
+//                         "vst1.f32   {d18-d19}, [%5]!    \n"
+//                         "subs       %0, #1              \n"
+//                         "bne        0b                  \n"
+//                         : "=r"(nn),    // %0
+//                           "=r"(r00),   // %1
+//                           "=r"(r01),   // %2
+//                           "=r"(r10),   // %3
+//                           "=r"(r11),   // %4
+//                           "=r"(outptr) // %5
+//                         : "0"(nn),
+//                           "1"(r00),
+//                           "2"(r01),
+//                           "3"(r10),
+//                           "4"(r11),
+//                           "5"(outptr),
+//                           "w"(_k0), // %12
+//                           "w"(_k1)  // %13
+//                         : "cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
+//                         );
+//                 }
+// #endif // __aarch64__
+#endif // __ARM_NEON
+
+
+                for (; remain > 0; remain--)  //剩下宽的循环
+                {
+#if __ARM_NEON
+                    float32x2_t _r00 = vld1_f32(r00);
+                    float32x2_t _r01 = vld1_f32(r01);
+                    float32x4_t _r00r1 = vcombine_f32(_r00, _r01);
+                    float32x4_t _s0s1 = vmulq_f32(_r00r1, _k0);
+
+                    float32x2_t _r10 = vld1_f32(r10);
+                    float32x2_t _r11 = vld1_f32(r11);
+                    float32x4_t _r10r1 = vcombine_f32(_r10, _r11);
+                    _s0s1 = vmlaq_f32(_s0s1, _r10r1, _k1);
+
+                    float32x2_t _s = vadd_f32(vget_low_f32(_s0s1), vget_high_f32(_s0s1));
+                    _s = vpadd_f32(_s, _s);
+                    *outptr += vget_lane_f32(_s, 0);
+#else
+                    float sum = 0.f;
+
+                    sum += r00[0] * kernel0[0];
+                    sum += r00[1] * kernel0[1];
+                    sum += r01[0] * kernel0[2];
+                    sum += r01[1] * kernel0[3];
+
+                    sum += r10[0] * kernel1[0];
+                    sum += r10[1] * kernel1[1];
+                    sum += r11[0] * kernel1[2];
+                    sum += r11[1] * kernel1[3];
+
+                    *outptr += sum;
+#endif // __ARM_NEON
+
+                    r00 += 2;
+                    r01 += 2;
+                    r10 += 2;
+                    r11 += 2;
+                    outptr++;
+                }
+
+                r00 += w;  //循环完之后多跳一行
+                r01 += w;
+                r10 += w;
+                r11 += w;
+            }
+        }
+
+        for (; q < inch; q++)  //剩下的输入通道循环
+        {
+            float *outptr = out;
+
+            const float *img0 = bottom_blob.channel(q);
+
+            const float *kernel0 = kernel + p * inch * 4 + q * 4;
+
+            const float *r0 = img0;
+            const float *r1 = img0 + w;
+
+            for (int i = 0; i < outh; i++)
+            {
+#if __ARM_NEON
+                int nn = outw >> 2;
+                int remain = outw & 3;
+#else
+                int remain = outw;
+#endif // __ARM_NEON
+
+#if __ARM_NEON
+                float32x4_t _k0 = vdupq_n_f32(kernel0[0]);
+                float32x4_t _k1 = vdupq_n_f32(kernel0[1]);
+                float32x4_t _k2 = vdupq_n_f32(kernel0[2]);
+                float32x4_t _k3 = vdupq_n_f32(kernel0[3]);
+//#if __aarch64__
+                for (; nn > 0; nn--)
+                {
+                    float32x4x2_t _r00 = vld2q_f32(r0);
+                    float32x4x2_t _r10 = vld2q_f32(r1);
+
+                    float32x4_t _sum = vld1q_f32(outptr);
+                    float32x4_t _sum2;
+
+                    _sum = vmlaq_f32(_sum, _r00.val[0], _k0);
+                    _sum2 = vmulq_f32(_r00.val[1], _k1);
+                    _sum = vmlaq_f32(_sum, _r10.val[0], _k2);
+                    _sum2 = vmlaq_f32(_sum2, _r10.val[1], _k3);
+
+                    _sum = vaddq_f32(_sum, _sum2);
+
+                    vst1q_f32(outptr, _sum);
+
+                    r0 += 8;
+                    r1 += 8;
+                    outptr += 4;
+                }
+// #else
+//                 if (nn > 0)
+//                 {
+//                     asm volatile(
+//                         "0:                             \n"
+//                         "pld        [%1, #256]          \n"
+//                         "vld2.f32   {d0-d3}, [%1]!      \n"
+//                         "pld        [%2, #256]          \n"
+//                         "vld2.f32   {d4-d7}, [%2]!      \n"
+
+//                         "pld        [%3, #128]          \n"
+//                         "vld1.f32   {d18-d19}, [%3]     \n" // q9 = sum
+
+//                         "vmul.f32   q8, q0, %q8         \n"
+//                         "vmla.f32   q9, q2, %q10        \n"
+
+//                         "vmla.f32   q8, q1, %q9        \n"
+//                         "vmla.f32   q9, q3, %q11       \n"
+
+//                         "vadd.f32   q8, q8, q9          \n"
+
+//                         "subs       %0, #1              \n"
+//                         "vst1.f32   {d18-d19}, [%3]!    \n"
+//                         "bne        0b                  \n"
+//                         : "=r"(nn),    // %0
+//                           "=r"(r0),    // %1
+//                           "=r"(r1),    // %2
+//                           "=r"(outptr) // %3
+//                         : "0"(nn),
+//                           "1"(r0),
+//                           "2"(r1),
+//                           "3"(outptr),
+//                           "w"(_k0), // %8
+//                           "w"(_k1), // %9
+//                           "w"(_k2), // %10
+//                           "w"(_k3)  // %11
+//                         : "cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9");
+//                 }
+// #endif // __aarch64__
+#endif // __ARM_NEON
+
+#if __ARM_NEON
+                float32x4_t _k0123 = vld1q_f32(kernel0);
+#endif
+
+                for (; remain > 0; remain--)
+                {
+#if __ARM_NEON
+                    float32x2_t _r0 = vld1_f32(r0);
+                    float32x2_t _r1 = vld1_f32(r1);
+                    float32x4_t _r0r1 = vcombine_f32(_r0, _r1);
+                    float32x4_t _s0s1 = vmulq_f32(_r0r1, _k0123);
+                    float32x2_t _s = vadd_f32(vget_low_f32(_s0s1), vget_high_f32(_s0s1));
+                    _s = vpadd_f32(_s, _s);
+                    *outptr += vget_lane_f32(_s, 0);
+#else
+                    float sum = 0.f;
+                    sum += r0[0] * kernel0[0];
+                    sum += r0[1] * kernel0[1];
+                    sum += r1[0] * kernel0[2];
+                    sum += r1[1] * kernel0[3];
+                    *outptr += sum;
+#endif
+
+                    r0 += 2;
+                    r1 += 2;
+                    outptr++;
+                }
+
+                r0 += w;
+                r1 += w;
+            }
+        }
+    }
+}
