@@ -713,7 +713,7 @@ int Net::load_caffe_param(const unsigned char* _mem)
 
     }
 
-    for (int i=0; i<blob_count; i++)
+    for (int i=blob_count -1 ; i>=0 ; i--)
     {
         if(blobs[i].consumers.size() == 0)
             output_blobs.push_back(i);
