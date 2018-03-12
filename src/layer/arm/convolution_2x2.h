@@ -433,7 +433,7 @@ static void conv2x2s2_neon(const Mat &bottom_blob, Mat &top_blob, const Mat &_ke
 #endif // __ARM_NEON
 
 #if __ARM_NEON
-//#if __aarch64__
+#if __aarch64__
                 for (; nn > 0; nn--)     //宽循环
                 {
                     float32x4x2_t _r000 = vld2q_f32(r00);
@@ -462,56 +462,57 @@ static void conv2x2s2_neon(const Mat &bottom_blob, Mat &top_blob, const Mat &_ke
                     r11 += 8;
                     outptr += 4;
                 }
-// #else
-//                 if (nn > 0)
-//                 {
-//                     asm volatile(
-//                         "0:                             \n"
+#else
+                if (nn > 0)
+                {
+                    asm volatile(
+                        "0:                             \n"
 
-//                         "pld        [%5, #128]          \n"
-//                         "vld1.f32   {d18-d19}, [%5]     \n" // q9 = sum
+                        "pld        [%5, #128]          \n"
+                        "vld1.f32   {d18-d19}, [%5]     \n" // q9 = sum
 
-//                         "pld        [%1, #256]          \n"
-//                         "vld2.f32   {d0-d3}, [%1]!      \n"
-//                         "pld        [%2, #256]          \n" //preload %2
-//                         "vmla.f32   q9, q0, %e12[0]     \n"
-//                         "vmla.f32   q9, q1, %e12[1]     \n"
+                        "pld        [%1, #256]          \n"
+                        "vld2.f32   {d0-d3}, [%1]!      \n"
+                        "pld        [%2, #256]          \n" //preload %2
+                        "vmul.f32   q8, q0, %e12[0]     \n"
+                        "vmla.f32   q9, q1, %e12[1]     \n"
 
-//                         "vld2.f32   {d4-d7}, [%2]!      \n"
-//                         "pld        [%3, #256]          \n" //preload %3
-//                         "vmul.f32   q9, q2, %f12[0]     \n"
-//                         "vmla.f32   q9, q3, %f12[1]    \n"
+                        "vld2.f32   {d4-d7}, [%2]!      \n"
+                        "pld        [%3, #256]          \n" //preload %3
+                        "vmla.f32   q8, q2, %f12[0]     \n"
+                        "vmla.f32   q9, q3, %f12[1]     \n"
 
-//                         "vld2.f32   {d8-d11}, [%3]!    \n"
-//                         "pld        [%4, #256]          \n"
-//                         "vmla.f32   q9, q4, %e13[0]     \n"
-//                         "vmla.f32   q9, q5, %e13[1]    \n"
+                        "vld2.f32   {d20-d23}, [%3]!    \n"
+                        "pld        [%4, #256]          \n"
+                        "vmla.f32   q8, q10, %e13[0]     \n"
+                        "vmla.f32   q9, q11, %e13[1]    \n"
 
-//                         "vld2.f32   {d12-d15}, [%4]!    \n"
-//                         "vmla.f32   q9, q6, %f13[0]    \n"
-//                         "vmla.f32   q9, q7, %f13[1]    \n"
+                        "vld2.f32   {d24-d27}, [%4]!    \n"
+                        "vmla.f32   q8, q12, %f13[0]    \n"
+                        "vmla.f32   q9, q13, %f13[1]    \n"
 
-//                         "vst1.f32   {d18-d19}, [%5]!    \n"
-//                         "subs       %0, #1              \n"
-//                         "bne        0b                  \n"
-//                         : "=r"(nn),    // %0
-//                           "=r"(r00),   // %1
-//                           "=r"(r01),   // %2
-//                           "=r"(r10),   // %3
-//                           "=r"(r11),   // %4
-//                           "=r"(outptr) // %5
-//                         : "0"(nn),
-//                           "1"(r00),
-//                           "2"(r01),
-//                           "3"(r10),
-//                           "4"(r11),
-//                           "5"(outptr),
-//                           "w"(_k0), // %12
-//                           "w"(_k1)  // %13
-//                         : "cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15"
-//                         );
-//                 }
-// #endif // __aarch64__
+                        "vadd.f32   q9, q9,  q8         \n"
+
+                        "vst1.f32   {d18-d19}, [%5]!    \n"
+                        "subs       %0, #1              \n"
+                        "bne        0b                  \n"
+                        : "=r"(nn),    // %0
+                          "=r"(r00),   // %1
+                          "=r"(r01),   // %2
+                          "=r"(r10),   // %3
+                          "=r"(r11),   // %4
+                          "=r"(outptr) // %5
+                        : "0"(nn),
+                          "1"(r00),
+                          "2"(r01),
+                          "3"(r10),
+                          "4"(r11),
+                          "5"(outptr),
+                          "w"(_k0), // %12
+                          "w"(_k1)  // %13
+                        : "cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9", "q10", "q11", "q12", "q13", "q14", "q15");
+                }
+#endif // __aarch64__
 #endif // __ARM_NEON
 
 
@@ -586,7 +587,7 @@ static void conv2x2s2_neon(const Mat &bottom_blob, Mat &top_blob, const Mat &_ke
                 float32x4_t _k1 = vdupq_n_f32(kernel0[1]);
                 float32x4_t _k2 = vdupq_n_f32(kernel0[2]);
                 float32x4_t _k3 = vdupq_n_f32(kernel0[3]);
-//#if __aarch64__
+#if __aarch64__
                 for (; nn > 0; nn--)
                 {
                     float32x4x2_t _r00 = vld2q_f32(r0);
@@ -608,45 +609,44 @@ static void conv2x2s2_neon(const Mat &bottom_blob, Mat &top_blob, const Mat &_ke
                     r1 += 8;
                     outptr += 4;
                 }
-// #else
-//                 if (nn > 0)
-//                 {
-//                     asm volatile(
-//                         "0:                             \n"
-//                         "pld        [%1, #256]          \n"
-//                         "vld2.f32   {d0-d3}, [%1]!      \n"
-//                         "pld        [%2, #256]          \n"
-//                         "vld2.f32   {d4-d7}, [%2]!      \n"
+#else
+                if (nn > 0)
+                {
+                    asm volatile(
+                        "0:                             \n"
+                        "pld        [%3, #128]          \n"
+                        "vld1.f32   {d18-d19}, [%3]     \n" // q9 = sum
 
-//                         "pld        [%3, #128]          \n"
-//                         "vld1.f32   {d18-d19}, [%3]     \n" // q9 = sum
+                        "pld        [%1, #256]          \n"
+                        "vld2.f32   {d0-d3}, [%1]!      \n"
+                        "pld        [%2, #256]          \n"
+                        "vmul.f32   q8, q0, %q8         \n"
+                        "vmla.f32   q9, q1, %q9         \n"
 
-//                         "vmul.f32   q8, q0, %q8         \n"
-//                         "vmla.f32   q9, q2, %q10        \n"
+                        "vld2.f32   {d4-d7}, [%2]!      \n"
+                        "vmla.f32   q8, q2, %q10        \n"
+                        "vmla.f32   q9, q3, %q11        \n"
+                        
+                        "vadd.f32   q9, q8, q9          \n"
 
-//                         "vmla.f32   q8, q1, %q9        \n"
-//                         "vmla.f32   q9, q3, %q11       \n"
-
-//                         "vadd.f32   q8, q8, q9          \n"
-
-//                         "subs       %0, #1              \n"
-//                         "vst1.f32   {d18-d19}, [%3]!    \n"
-//                         "bne        0b                  \n"
-//                         : "=r"(nn),    // %0
-//                           "=r"(r0),    // %1
-//                           "=r"(r1),    // %2
-//                           "=r"(outptr) // %3
-//                         : "0"(nn),
-//                           "1"(r0),
-//                           "2"(r1),
-//                           "3"(outptr),
-//                           "w"(_k0), // %8
-//                           "w"(_k1), // %9
-//                           "w"(_k2), // %10
-//                           "w"(_k3)  // %11
-//                         : "cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9");
-//                 }
-// #endif // __aarch64__
+                        "vst1.f32   {d18-d19}, [%3]!    \n"
+                        "subs       %0, #1              \n"
+                        "bne        0b                  \n"
+                        : "=r"(nn),    // %0
+                          "=r"(r0),    // %1
+                          "=r"(r1),    // %2
+                          "=r"(outptr) // %3
+                        : "0"(nn),
+                          "1"(r0),
+                          "2"(r1),
+                          "3"(outptr),
+                          "w"(_k0), // %8
+                          "w"(_k1), // %9
+                          "w"(_k2), // %10
+                          "w"(_k3)  // %11
+                        : "cc", "memory", "q0", "q1", "q2", "q3", "q8", "q9");
+                }
+#endif // __aarch64__
 #endif // __ARM_NEON
 
 #if __ARM_NEON
