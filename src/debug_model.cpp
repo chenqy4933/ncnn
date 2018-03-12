@@ -24,23 +24,18 @@ namespace ncnn {
 
 Debug_file::Debug_file()
 {
+    GetInputBlobBinPath(input_path);
+    GetOutputBlobBinPath(output_path);
+    mkdir(input_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+    mkdir(output_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 }
 
 Debug_file::~Debug_file()
 {
 }
 
-
 int Debug_file::df_mkdir()
 {   
-    //run_id = GetRunId();
-    GetInputBlobBinPath(input_path);
-    GetOutputBlobBinPath(output_path);
-    if (run_id == 0)
-    {
-      mkdir(input_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-      mkdir(output_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    }
     run_id++;
     char dir_path[100];
     sprintf(dir_path, "%s/%d", input_path, run_id);
