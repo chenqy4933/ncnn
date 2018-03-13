@@ -53,12 +53,12 @@ int main(int argc,char** argv)
         pweight = weight + c * kernel_size * kernel_size * out;
         for (int p = 0; p < c; p++)
         {
-            pweight += p * kernel_size * kernel_size;
             for (int i = 0; i < kernel_size * kernel_size; i++)
             {
                 pweight[i]=1.0f;
                 //pweight[i] = rand() / (float)(RAND_MAX);
             }
+            pweight += kernel_size * kernel_size;
         }
         bias[out] = 1;//rand() / (float)(RAND_MAX);
     }
