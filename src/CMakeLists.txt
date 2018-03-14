@@ -160,7 +160,7 @@ ncnn_add_layer(InstanceNorm)
 ncnn_add_layer(Upsample)
 
 protobuf_generate_cpp(CAFFE_PROTO_SRCS CAFFE_PROTO_HDRS ${CAFFE_PROTO_PATH})
-add_library(ncnn ${ncnn_SRCS} ${CAFFE_PROTO_SRCS} ${CAFFE_PROTO_HDRS})
+add_library(ncnn ${ncnn_SRCS} ${CAFFE_PROTO_HDRS})
 add_library(caffeproto ${CAFFE_PROTO_SRCS} ${CAFFE_PROTO_HDRS})
 
 target_link_libraries(caffeproto ${PROTOBUF_LIBRARIES})
