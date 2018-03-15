@@ -29,7 +29,7 @@ int ReLU_arm::forward_inplace(Mat& bottom_top_blob) const
     int channels = bottom_top_blob.c;
     int size = w * h;
 
-#if 1 // 同步caffemobile的relu版本, 实现方式能获得更高性能
+#if 0 // 同步caffemobile的relu版本, 实现方式能获得更高性能
     int align_size = 16;
     int nn = size & -align_size;
 	#pragma omp parallel for
@@ -88,43 +88,139 @@ int ReLU_arm::forward_inplace(Mat& bottom_top_blob) const
             float* ptr = bottom_top_blob.channel(q);
 
 #if __ARM_NEON
-            int nn = size >> 2;
-            int remain = size - (nn << 2);
+            int nn = size >> 4;
+            int remain = size - (nn << 4);
 #else
             int remain = size;
 #endif // __ARM_NEON
 
 #if __ARM_NEON
 #if __aarch64__
-            float32x4_t _zero = vdupq_n_f32(0.f);
-            for (; nn>0; nn--)
-            {
-                float32x4_t _p = vld1q_f32(ptr);
-                _p = vmaxq_f32(_p, _zero);
-                vst1q_f32(ptr, _p);
+            // float32x4_t _zero = vdupq_n_f32(0.f);
+            // for (; nn>0; nn--)
+            // {
+            //     float32x4_t _p = vld1q_f32(ptr);
+            //     _p = vmaxq_f32(_p, _zero);
+            //     vst1q_f32(ptr, _p);
 
-                ptr += 4;
+            //     ptr += 4;
+            // }
+            
+            if (nn > 0)
+            {
+                asm volatile(
+
+                    "eor    v1.16b, v0.16b, v0.16b          \n"
+
+                    "0:                                        \n"
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v0.4s, v0.4s, v1.4s                \n"
+                    "st1     {v0.4s}, [%1],#16                 \n"
+
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v0.4s, v0.4s, v1.4s                \n"
+                    "st1     {v0.4s}, [%1],#16                 \n"
+
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v0.4s, v0.4s, v1.4s                \n"
+                    "st1     {v0.4s}, [%1],#16                 \n"
+
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v0.4s, v0.4s, v1.4s                \n"
+                    "st1     {v0.4s}, [%1],#16                 \n"
+                  
+                    "subs     %0,  %0, #1              \n"
+                    "bne        0b                  \n"
+                    : "=r"(nn), // %0
+                      "=r"(ptr) // %1
+                    : "0"(nn),
+                      "1"(ptr)
+                    : "cc", "memory", "v0", "v1");
             }
 #else
             if (nn > 0)
             {
-            asm volatile(
-                "veor       q1, q0, q0          \n"
-                "0:                             \n"
-                "pld        [%1, #128]          \n"
-                "vld1.f32   {d0-d1}, [%1 :128]  \n"
-                "vmax.f32   q0, q0, q1          \n"
-                "subs       %0, #1              \n"
-                "vst1.f32   {d0-d1}, [%1 :128]! \n"
-                "bne        0b                  \n"
-                : "=r"(nn),     // %0
-                  "=r"(ptr)     // %1
-                : "0"(nn),
-                  "1"(ptr)
-                : "cc", "memory", "q0", "q1"
-            );
+                asm volatile(
+                    "veor       q1, q0, q0          \n"
+                    "0:                             \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q0, q0, q1          \n"
+                    "vst1.f32   {d0-d1}, [%1 :128]! \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q0, q0, q1          \n"
+                    "vst1.f32   {d0-d1}, [%1 :128]! \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q0, q0, q1          \n"
+                    "vst1.f32   {d0-d1}, [%1 :128]! \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q0, q0, q1          \n"
+                    "vst1.f32   {d0-d1}, [%1 :128]! \n"
+
+                    "subs       %0, #1              \n"
+                    "bne        0b                  \n"
+                    : "=r"(nn), // %0
+                      "=r"(ptr) // %1
+                    : "0"(nn),
+                      "1"(ptr)
+                    : "cc", "memory", "q0", "q1");
             }
 #endif // __aarch64__
+            int remain_nn=remain>>2;
+            remain=(remain-remain_nn<<2);
+#if __aarch64__
+            if (remain_nn>0)
+            {
+                asm volatile(
+
+                    "eor       v1.16b, v0.16b, v0.16b          \n"
+
+                    "0:                                        \n"
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v0.4s, v0.4s, v1.4s                \n"
+                    "st1     {v0.4s}, [%1],#16                 \n"
+
+                    "subs     %0, %0, #1              \n"
+                    "bne        0b                  \n"
+                    : "=r"(remain_nn), // %0
+                      "=r"(ptr)        // %1
+                    : "0"(remain_nn),
+                      "1"(ptr)
+                    : "cc", "memory", "v0", "v1");
+            }
+#else
+            if(remain_nn>0)
+            {
+                asm volatile(
+                    "veor       q1, q0, q0          \n"
+                    "0:                             \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q0, q0, q1          \n"
+                    "vst1.f32   {d0-d1}, [%1 :128]! \n"
+
+                    "subs       %0, #1              \n"
+                    "bne        0b                  \n"
+                    : "=r"(remain_nn), // %0
+                      "=r"(ptr)        // %1
+                    : "0"(remain_nn),
+                      "1"(ptr)
+                    : "cc", "memory", "q0", "q1");
+            }
+#endif
 #endif // __ARM_NEON
             for (; remain>0; remain--)
             {
@@ -136,55 +232,174 @@ int ReLU_arm::forward_inplace(Mat& bottom_top_blob) const
     }
     else
     {
-        #pragma omp parallel for
+#pragma omp parallel for
         for (int q=0; q<channels; q++)
         {
             float* ptr = bottom_top_blob.channel(q);
 
 #if __ARM_NEON
-            int nn = size >> 2;
-            int remain = size - (nn << 2);
+            int nn = size >> 4;
+            int remain = size - (nn << 4);
 #else
             int remain = size;
 #endif // __ARM_NEON
 
 #if __ARM_NEON
 #if __aarch64__
-            float32x4_t _zero = vdupq_n_f32(0.f);
-            float32x4_t _slope = vdupq_n_f32(slope);
-            for (; nn>0; nn--)
-            {
-                float32x4_t _p = vld1q_f32(ptr);
-                uint32x4_t _lemask = vcleq_f32(_p, _zero);
-                float32x4_t _ps = vmulq_f32(_p, _slope);
-                _p = vbslq_f32(_lemask, _ps, _p);
-                vst1q_f32(ptr, _p);
+            // float32x4_t _zero = vdupq_n_f32(0.f);
+            // float32x4_t _slope = vdupq_n_f32(slope);
+            // for (; nn>0; nn--)
+            // {
+            //     float32x4_t _p = vld1q_f32(ptr);
+            //     uint32x4_t _lemask = vcleq_f32(_p, _zero);
+            //     float32x4_t _ps = vmulq_f32(_p, _slope);
+            //     _p = vbslq_f32(_lemask, _ps, _p);
+            //     vst1q_f32(ptr, _p);
 
-                ptr += 4;
+            //     ptr += 4;
+            // }
+            if(nn>0)
+            {
+                float32x4_t _slope = vdupq_n_f32(slope);
+                asm volatile(
+
+                    "eor       v1.16b, v0.16b, v0.16b          \n"
+
+                    "0:                                        \n"
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v2.4s, v0.4s, v1.4s                \n"
+                    "fmin   v3.4s, v0.4s, v1.4s               \n"
+                    "fmla   v2.4s, v3.4s, %4.4s                \n"
+                    "st1     {v2.4s}, [%1],#16                 \n"
+
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v2.4s, v0.4s, v1.4s                \n"
+                    "fmin   v3.4s, v0.4s, v1.4s               \n"
+                    "fmla   v2.4s, v3.4s, %4.4s             \n"
+                    "st1     {v2.4s}, [%1],#16                 \n"
+
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v2.4s, v0.4s, v1.4s                \n"
+                    "fmin   v3.4s, v0.4s, v1.4s               \n"
+                    "fmla   v2.4s, v3.4s, %4.4s             \n"
+                    "st1     {v2.4s}, [%1],#16                 \n"
+
+                    "prfm   pldl1keep, [%1, #128]              \n"
+                    "ld1    {v0.4s}, [%1]                      \n"
+                    "fmax   v2.4s, v0.4s, v1.4s                \n"
+                    "fmin   v3.4s, v0.4s, v1.4s               \n"
+                    "fmla   v2.4s, v3.4s, %4.4s             \n"
+                    "st1     {v2.4s}, [%1],#16                 \n"
+
+                    "subs     %0 ,%0, #1                        \n"
+                    "bne        0b                             \n"
+                    : "=r"(nn), // %0
+                    "=r"(ptr) // %1
+                    : "0"(nn),
+                    "1"(ptr),
+                    "w"(_slope) // %4
+                    : "cc", "memory", "v0", "v1", "v2", "v3");
             }
 #else
-            if (nn > 0)
+            if(nn>0)
             {
+                asm volatile(
+                    "veor       q1, q0, q0          \n"
+                    "vdup.f32   q2, %4              \n"
+
+                    "0:                             \n"
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q3, q0, q1          \n"
+                    "vmin.f32   q4, q0, q1          \n"
+                    "vmla.f32   q3, q4, q2          \n"
+                    "vst1.f32   {d6-d7}, [%1 :128]! \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q3, q0, q1          \n"
+                    "vmin.f32   q4, q0, q1          \n"
+                    "vmla.f32   q3, q4, q2          \n"
+                    "vst1.f32   {d6-d7}, [%1 :128]! \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q3, q0, q1          \n"
+                    "vmin.f32   q4, q0, q1          \n"
+                    "vmla.f32   q3, q4, q2          \n"
+                    "vst1.f32   {d6-d7}, [%1 :128]! \n"
+
+                    "pld        [%1, #128]          \n"
+                    "vld1.f32   {d0-d1}, [%1 :128]  \n"
+                    "vmax.f32   q3, q0, q1          \n"
+                    "vmin.f32   q4, q0, q1          \n"
+                    "vmla.f32   q3, q4, q2          \n"
+                    "vst1.f32   {d6-d7}, [%1 :128]! \n"
+
+                    "subs       %0, #1              \n"
+                    "bne        0b                  \n"
+                    : "=r"(nn), // %0
+                    "=r"(ptr) // %1
+                    : "0"(nn),
+                    "1"(ptr),
+                    "r"(slope) // %4
+                    : "cc", "memory", "q0", "q1", "q2", "q3", "q4");
+            }
+#endif // __aarch64__
+        int remain_nn = remain >> 2;
+        remain=remain-remain_nn<<2;
+#if __aarch64__
+        if (remain_nn)
+        {
+            float32x4_t _slope = vdupq_n_f32(slope);
+            asm volatile(
+
+                "eor       v1.16b, v0.16b, v0.16b          \n"
+
+                "0:                                        \n"
+                "prfm   pldl1keep, [%1, #128]              \n"
+                "ld1    {v0.4s}, [%1]                      \n"
+                "fmax   v2.4s, v0.4s, v1.4s                \n"
+                "fmin   v3.4s, v0.4s, v1.4s               \n"
+                "fmla   v2.4s, v3.4s, %4.4s             \n"
+                "st1     {v2.4s}, [%1],#16                 \n"
+
+                "subs     %0 ,%0, #1                        \n"
+                "bne        0b                             \n"
+                : "=r"(remain_nn), // %0
+                  "=r"(ptr)        // %1
+                : "0"(remain_nn),
+                  "1"(ptr),
+                  "w"(_slope) // %4
+                : "cc", "memory", "v0", "v1", "v2", "v3");
+        }
+#else
+        if (remain_nn>0)
+        {
             asm volatile(
                 "veor       q1, q0, q0          \n"
                 "vdup.f32   q2, %4              \n"
+
                 "0:                             \n"
                 "pld        [%1, #128]          \n"
                 "vld1.f32   {d0-d1}, [%1 :128]  \n"
-                "vcle.f32   q3, q0, q1          \n"
-                "vmul.f32   q4, q0, q2          \n"
-                "vbit.32    q0, q4, q3          \n"
+                "vmax.f32   q3, q0, q1          \n"
+                "vmin.f32   q4, q0, q1          \n"
+                "vmla.f32   q3, q4, q2          \n"
+                "vst1.f32   {d6-d7}, [%1 :128]! \n"
+
                 "subs       %0, #1              \n"
-                "vst1.f32   {d0-d1}, [%1 :128]! \n"
                 "bne        0b                  \n"
-                : "=r"(nn),     // %0
-                  "=r"(ptr)     // %1
-                : "0"(nn),
+                : "=r"(remain_nn), // %0
+                  "=r"(ptr)        // %1
+                : "0"(remain_nn),
                   "1"(ptr),
-                  "r"(slope)    // %4
-                : "cc", "memory", "q0", "q1", "q2", "q3", "q4"
-            );
-            }
+                  "r"(slope) // %4
+                : "cc", "memory", "q0", "q1", "q2", "q3", "q4", "q5", "q6", "q7", "q8");
+        }
 #endif // __aarch64__
 #endif // __ARM_NEON
             for (; remain>0; remain--)
