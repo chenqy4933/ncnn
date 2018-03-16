@@ -136,7 +136,7 @@ int ConvolutionDepthWise_arm::forward(const Mat& bottom_blob, Mat& top_blob) con
 
             op->load_model(ModelBinFromMatArray(weights));
             op->set_noexchange(true);
-            // forward
+            // conv's top_blob_g always no inter ReCreate. ( top_blob.create )
             op->forward(bottom_blob_bordered_g, top_blob_g);
 
             delete op;

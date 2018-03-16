@@ -68,9 +68,13 @@ int Deconvolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
     int outh = (h - 1) * stride + kernel_size;
 
     Mat top_blob_bordered = top_blob;
-    top_blob_bordered.create(outw, outh, num_output);
-    if (top_blob_bordered.empty())
-        return -100;
+    if(no_exchange_top_blob && !top_blob_bordered.empty()){
+        ;
+    }else{
+        top_blob_bordered.create(outw, outh, num_output);
+        if (top_blob_bordered.empty())
+            return -100;
+    }
 
     deconv(bottom_blob, top_blob_bordered, weight_data, bias_data);
 
