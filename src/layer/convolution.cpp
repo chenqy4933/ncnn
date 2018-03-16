@@ -13,6 +13,7 @@
 // specific language governing permissions and limitations under the License.
 
 #include "convolution.h"
+#include "eigen.h"
 
 namespace ncnn {
 
@@ -57,7 +58,40 @@ int Convolution::load_model(const ModelBin& mb)
     return 0;
 }
 
-int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
+
+int Convolution::forward_eigen(const Mat& bottom_blob, Mat& top_blob) const
+{
+    // convolv with NxN kernel
+    // value = value + bias
+
+    int w = bottom_blob.w;
+    int h = bottom_blob.h;
+    int channels = bottom_blob.c;
+
+    //no need (pad_w == -233 && pad_h == -233)
+    //assert!(pad_w == -233 && pad_h == -233)
+    
+    int outw = (w +2*pad_w - dilation_w * (kernel_w -1 ) - 1) / stride_w + 1;
+    int outh = (h +2*pad_h - dilation_h * (kernel_h -1 ) - 1) / stride_h + 1;
+
+    Mat top_blob_bordered = top_blob;
+    if(no_exchange_top_blob && !top_blob_bordered.empty()){
+        ;
+    }else{
+        top_blob_bordered.create(outw, outh, num_output);
+        if (top_blob_bordered.empty())
+            return -100;
+    }
+
+    conv_eigen(bottom_blob, top_blob_bordered, weight_data, bias_data,
+        pad_h, pad_w, kernel_h, kernel_w, stride_h, stride_w, dilation_h, dilation_w);
+
+    top_blob = top_blob_bordered;
+
+    return 0;
+}
+
+int Convolution::forward_orig(const Mat& bottom_blob, Mat& top_blob) const
 {
     // convolv with NxN kernel
     // value = value + bias
@@ -171,5 +205,23 @@ int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
 
     return 0;
 }
+
+#if NCNN_USE_EIGEN
+
+int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
+{
+    forward_eigen(bottom_blob,top_blob);
+}
+
+#else
+
+int Convolution::forward(const Mat& bottom_blob, Mat& top_blob) const
+{
+    forward_orig(bottom_blob,top_blob);
+}
+
+#endif
+
+
 
 } // namespace ncnn

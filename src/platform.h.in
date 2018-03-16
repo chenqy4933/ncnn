@@ -19,6 +19,7 @@
 #cmakedefine01 NCNN_STRING
 #cmakedefine01 NCNN_OPENCV
 #cmakedefine01 NCNN_BENCHMARK
+#cmakedefine01 NCNN_USE_EIGEN
 #cmakedefine01 NCNN_DEBUG_FILE
 
 #endif // NCNN_PLATFORM_H

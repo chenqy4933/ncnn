@@ -23,18 +23,18 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> M
 #define MAP_DMATRIX(name, ptr, M, N) Eigen::Map<MatXd> name(ptr, M, N)
 #define MAP_CONST_DMATRIX(name, ptr, M, N) Eigen::Map<const MatXd> name(ptr, M, N)
 
-
-
-inline void conv_col2im_cpu(const float* col_buff, float* data, const ncnn::Mat& bottomBlob,
-	ncnn::Mat& topBlob, int pad_h, int pad_w, int kernel, int stride) 
+inline void conv_im2col_cpu(const float* data, float* col_buff,
+	const ncnn::Mat& bottomBlob, ncnn::Mat& topBlob, 
+	int pad_h, int pad_w, int kernel_h, int kernel_w, 
+	int stride_h, int stride_w, int dilation_h, int dilation_w) 
 {
-	ncnn::col2im_cpu(col_buff, topBlob.c,
-	  topBlob.h, topBlob.w,
-	  topBlob.cstep, bottomBlob.cstep,
-	  kernel, kernel,
-	  pad_h, pad_w,
-	  stride, stride,
-	  1, 1, data);
+	ncnn::im2col_cpu(data, bottomBlob.c,
+		bottomBlob.h, bottomBlob.w,
+		topBlob.cstep, bottomBlob.cstep,
+		kernel_h, kernel_w,
+		pad_h, pad_w,
+		stride_h, stride_w,
+		dilation_h, dilation_w, col_buff);
 }
 
 inline void conv_col2im_cpu(const float* col_buff, float* data, 
@@ -49,6 +49,68 @@ inline void conv_col2im_cpu(const float* col_buff, float* data,
 	  pad_h, pad_w,
 	  stride_h, stride_w,
 	  dilation_h, dilation_w, data);
+}
+
+static int conv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, 
+	const ncnn::Mat& _kernel, const ncnn::Mat& _bias, 
+	int pad_h, int pad_w, 
+	int kernel_h, int kernel_w,
+	int stride_h, int stride_w,
+	int dilation_h,int dilation_w
+	)
+{
+	//M  	: 	conv_out_channels_ / group_		top_blob的通道(c/g)
+	//N		:	conv_out_spatial_dim_			top_blob的大小(oh*ow)		
+	//beta	:	0
+	//K		:	kernel_dim_ 					weight权值的大小(bc*kh*kw)
+	//alpha	:	1
+	//A		:	weights + weight_offset_ * g
+	//B		:	orig_picture_data + _offset_ * g
+
+	int M 		= top_blob.c ;
+	int N 		= top_blob.cstep;
+	float beta 	= 0.;
+	int K		= bottom_blob.c * kernel_h * kernel_w;
+	float alpha	= 1.;
+	float* A	= (float *)_kernel.data;
+	float* C	= (float *)top_blob.data;
+
+	int CM 	= K * N;
+	float* B	= (float *)malloc(CM * sizeof(float));
+	assert(B);
+	conv_im2col_cpu((float *)bottom_blob.data, B, bottom_blob, top_blob, pad_h, pad_w, kernel_h, kernel_w, stride_h, stride_w, dilation_h, dilation_w);
+
+	const float* bias = (const float*)_bias.data;
+	for (int p=0; p< top_blob.c; p++)
+    {
+		ncnn::Mat out = top_blob.channel(p);
+		const float bias0 = bias ? bias[p] : 0.f;
+	    out.fill(bias0);
+	}
+
+	MAP_SMATRIX(eC, C, M, N);
+	MAP_CONST_SMATRIX(eA, A, M, K);
+	MAP_CONST_SMATRIX(eB, B, K, N);
+	if (beta == 0) {
+	  if (alpha == 1) {
+		eC.noalias() += (eA * eB);
+	  } else {
+		eC.noalias() += alpha * (eA * eB);
+	  }
+	} else {
+	  if (beta != 1) {
+		eC *= beta;
+	  }
+	  if (alpha == 1) {
+		eC.noalias() += (eA * eB);
+	  } else {
+		eC.noalias() += alpha * (eA * eB);
+	  }
+	}
+
+	free(B);
+
+	return 1;
 }
 
 
@@ -66,11 +128,11 @@ static int deconv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob,
 	//K		:	conv_out_channels_ / group_		bottom_blob的通道(c/g)
 	//alpha	:	1
 	//A		:	weights + weight_offset_ * g
-	//B		:	output + output_offset_ * g
+	//B		:	property_pucture_data + _offset_ * g
 
 	//TODO: bottom align data should be set as 0.
 
-	//allocate weight to exchange num and channel.
+	//allocate weight: n * c* (kh*kw)    -->   c * n* (kh*kw)
 	//TODO: no alloc.
 	ncnn::Mat _kernelchange(kernel_h, kernel_w, bottom_blob.c, top_blob.c, _kernel);
 	
@@ -109,9 +171,6 @@ static int deconv_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob,
 	return 1;
 }
 
-static int deconv4x4s2_eigen(const ncnn::Mat& bottom_blob, ncnn::Mat& top_blob, const ncnn::Mat& _kernel, const ncnn::Mat& _bias, int pad_h, int pad_w)
-{
-	return deconv_eigen(bottom_blob,top_blob,_kernel,_bias,pad_h,pad_w,4,4,2,2,1,1);
-}
+
 
 #endif
