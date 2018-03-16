@@ -66,6 +66,8 @@ int Convolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
 
     if (kernel_w != kernel_h || stride_w != stride_h)
     {
+        if(kernel_w == 1 || kernel_h == 1)
+            return Convolution::forward_orig(bottom_blob, top_blob);
         return Convolution::forward(bottom_blob, top_blob);
     }
 
@@ -93,7 +95,11 @@ int Convolution_arm::forward(const Mat& bottom_blob, Mat& top_blob) const
                 0}, // kernel_size = 2
             {
                 conv3x3s1_neon,
+            #if NCNN_USE_EIGEN
+                0,
+            #else
                 conv3x3s2_neon,
+            #endif
                 0,
                 0}, // kernel_size = 3
             {

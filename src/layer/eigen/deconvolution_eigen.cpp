@@ -21,6 +21,11 @@ DEFINE_LAYER_CREATOR(Deconvolution_eigen)
 
 int Deconvolution_eigen::forward(const Mat& bottom_blob, Mat& top_blob) const
 {
+    if (kernel_w + kernel_h < 3)
+    {
+        return Deconvolution::forward(bottom_blob, top_blob);
+    }
+
     int w = bottom_blob.w;
     int h = bottom_blob.h;
 
