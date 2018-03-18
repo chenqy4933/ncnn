@@ -43,19 +43,36 @@ int AbsVal_arm::forward_inplace(Mat& bottom_top_blob) const
 
 #if __ARM_NEON
 #if __aarch64__
-        for (; nn>0; nn--)
-        {
-            float32x4_t _p = vld1q_f32(ptr);
-            _p = vabsq_f32(_p);
-            vst1q_f32(ptr, _p);
+        // for (; nn>0; nn--)
+        // {
+        //     float32x4_t _p = vld1q_f32(ptr);
+        //     _p = vabsq_f32(_p);
+        //     vst1q_f32(ptr, _p);
 
-            ptr += 4;
+        //     ptr += 4;
+        // }
+        {
+            asm volatile(
+                "0:                             \n"
+                "prfm  pldl1keep, [%1,#128]     \n"
+                "ld1   {v0.4s},[%1]             \n"
+                "fabs  v0.4s,v0.4s              \n"
+                "st1   {v0.4s},[%1],#16         \n"
+                
+                "subs   %0,  %0, #1             \n"
+                "bne        0b                  \n"
+                : "=r"(nn), // %0
+                  "=r"(ptr) // %1
+                : "0"(nn),
+                  "1"(ptr)
+                : "cc", "memory", "v0");
         }
 #else
         if (nn > 0)
         {
         asm volatile(
             "0:                             \n"
+            "pld  [%1,#128]                 \n"
             "vld1.f32   {d0-d1}, [%1]       \n"
             "vabs.f32   q0, q0              \n"
             "subs       %0, #1              \n"
