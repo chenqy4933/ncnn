@@ -8,6 +8,7 @@ include_directories(${CMAKE_SOURCE_DIR}/src/layer)
 include_directories(${CMAKE_SOURCE_DIR}/layerTest)
 
 add_executable(Test_deconv_eigen Test_deconv_eigen.cpp)
+add_executable(Test_conv_eigen Test_conv_eigen.cpp)
 add_executable(Test_convolution conv_benchmark.cpp)
 add_executable(Test_deconvolution deconv_benchmark.cpp)
 
@@ -17,5 +18,6 @@ set_property(TARGET Test_deconvolution PROPERTY COMPILE_FLAGS "-fpie")
 set_property(TARGET Test_deconvolution PROPERTY LINK_FLAGS "-pie")
 
 target_link_libraries(Test_deconv_eigen ncnn)
+target_link_libraries(Test_conv_eigen ncnn)
 target_link_libraries(Test_convolution ncnn)
 target_link_libraries(Test_deconvolution ncnn)
