@@ -137,9 +137,9 @@ int Pooling::forward(const std::vector<Mat>& bottom_blobs, std::vector<Mat>& top
         int wtailpad = 0;
         int htailpad = 0;
         if (wtail != 0)
-            wtailpad = kernel_w - wtail;
+            wtailpad = stride_w - wtail;
         if (htail != 0)
-            htailpad = kernel_h - htail;
+            htailpad = stride_h - htail;
 
         Mat bottom_blob_bordered2;
         if (pooling_type == PoolMethod_MAX)

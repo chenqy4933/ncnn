@@ -93,9 +93,9 @@ int Pooling_arm::forward(const std::vector<Mat> &bottom_blobs, std::vector<Mat> 
         int wtailpad = 0;
         int htailpad = 0;
         if (wtail != 0)
-            wtailpad = kernel_w - wtail;
+            wtailpad = stride_w - wtail;
         if (htail != 0)
-            htailpad = kernel_h - htail;
+            htailpad = stride_h - htail;
 
         Mat bottom_blob_bordered2;
         copy_make_border(bottom_blob_bordered, bottom_blob_bordered2, 0, htailpad, 0, wtailpad, BORDER_REPLICATE, 0.f);
